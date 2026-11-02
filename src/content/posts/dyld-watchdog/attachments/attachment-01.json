@@ -1,0 +1,194 @@
+{
+  "app_name": "ExampleApp",
+  "osVersion": "iPhone OS 15.7.3",
+  "cpuType": "ARM-64",
+  "exception": {
+    "codes": "0x0000000000000000, 0x0000000000000000",
+    "rawCodes": [
+      0,
+      0
+    ],
+    "type": "EXC_CRASH",
+    "signal": "SIGKILL"
+  },
+  "termination": {
+    "namespace": "FRONTBOARD",
+    "code": 2343432205,
+    "reason": "process-launch watchdog transgression; 20 second allowance"
+  },
+  "threads": [
+    {
+      "triggered": true,
+      "frames": [
+        {
+          "imageOffset": 31128,
+          "symbol": "prepareMethodLists(objc_class*, method_list_t**, int, bool, bool, char const*)",
+          "symbolLocation": 156,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 61992,
+          "symbol": "realizeClassWithoutSwift(objc_class*, objc_class*)",
+          "symbolLocation": 1504,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 61992,
+          "symbol": "realizeClassWithoutSwift(objc_class*, objc_class*)",
+          "symbolLocation": 1504,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 60948,
+          "symbol": "realizeClassWithoutSwift(objc_class*, objc_class*)",
+          "symbolLocation": 460,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 49148,
+          "symbol": "map_images_nolock",
+          "symbolLocation": 5012,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 50944,
+          "symbol": "map_images",
+          "symbolLocation": 120,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 25748,
+          "symbol": "invocation function for block in dyld4::RuntimeState::setObjCNotifiers(void (*)(unsigned int, char const* const*, mach_header const* const*), void (*)(char const*, mach_header const*), void (*)(char const*, mach_header const*))",
+          "symbolLocation": 252,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 17124,
+          "symbol": "dyld4::RuntimeState::withLoadersReadLock(void () block_pointer)",
+          "symbolLocation": 60,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 83384,
+          "symbol": "dyld4::RuntimeState::setObjCNotifiers(void (*)(unsigned int, char const* const*, mach_header const* const*), void (*)(char const*, mach_header const*), void (*)(char const*, mach_header const*))",
+          "symbolLocation": 76,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 40524,
+          "symbol": "dyld4::APIs::_dyld_objc_notify_register(void (*)(unsigned int, char const* const*, mach_header const* const*), void (*)(char const*, mach_header const*), void (*)(char const*, mach_header const*))",
+          "symbolLocation": 92,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 38980,
+          "symbol": "_objc_init",
+          "symbolLocation": 1544,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 406604,
+          "symbol": "_os_object_init",
+          "symbolLocation": 20,
+          "imageIndex": 2
+        },
+        {
+          "imageOffset": 70300,
+          "symbol": "libdispatch_init$VARIANT$mp",
+          "symbolLocation": 336,
+          "imageIndex": 2
+        },
+        {
+          "imageOffset": 6072,
+          "symbol": "libSystem_initializer",
+          "symbolLocation": 204,
+          "imageIndex": 3
+        },
+        {
+          "imageOffset": 33060,
+          "symbol": "invocation function for block in dyld4::Loader::findAndRunAllInitializers(dyld4::RuntimeState&) const",
+          "symbolLocation": 152,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 229408,
+          "symbol": "invocation function for block in dyld3::MachOAnalyzer::forEachInitializer(Diagnostics&, dyld3::MachOAnalyzer::VMAddrConverter const&, void (unsigned int) block_pointer, void const*) const",
+          "symbolLocation": 332,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 24300,
+          "symbol": "invocation function for block in dyld3::MachOFile::forEachSection(void (dyld3::MachOFile::SectionInfo const&, bool, bool&) block_pointer) const",
+          "symbolLocation": 520,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 21008,
+          "symbol": "dyld3::MachOFile::forEachLoadCommand(Diagnostics&, void (load_command const*, bool&) block_pointer) const",
+          "symbolLocation": 160,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 17776,
+          "symbol": "dyld3::MachOFile::forEachSection(void (dyld3::MachOFile::SectionInfo const&, bool, bool&) block_pointer) const",
+          "symbolLocation": 164,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 69860,
+          "symbol": "dyld3::MachOAnalyzer::forEachInitializer(Diagnostics&, dyld3::MachOAnalyzer::VMAddrConverter const&, void (unsigned int) block_pointer, void const*) const",
+          "symbolLocation": 376,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 56848,
+          "symbol": "dyld4::Loader::findAndRunAllInitializers(dyld4::RuntimeState&) const",
+          "symbolLocation": 144,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 23552,
+          "symbol": "dyld4::PrebuiltLoader::runInitializers(dyld4::RuntimeState&) const",
+          "symbolLocation": 40,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 182404,
+          "symbol": "dyld4::APIs::runAllInitializersForMain()",
+          "symbolLocation": 44,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 105564,
+          "symbol": "dyld4::prepare(dyld4::APIs&, dyld3::MachOAnalyzer const*)",
+          "symbolLocation": 2620,
+          "imageIndex": 1
+        },
+        {
+          "imageOffset": 99504,
+          "symbol": "start",
+          "symbolLocation": 412,
+          "imageIndex": 1
+        }
+      ]
+    }
+  ],
+  "usedImages": [
+    {
+      "name": "libobjc.A.dylib",
+      "arch": "arm64"
+    },
+    {
+      "name": "dyld",
+      "arch": "arm64"
+    },
+    {
+      "name": "libdispatch.dylib",
+      "arch": "arm64"
+    },
+    {
+      "name": "libSystem.B.dylib",
+      "arch": "arm64"
+    }
+  ]
+}

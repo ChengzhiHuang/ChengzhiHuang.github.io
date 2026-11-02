@@ -1,0 +1,2 @@
+# Source boundary
+Use the posts collection and src/lib/posts.ts for all article surfaces. Markdown attachments use a separate collection owned by a post; never count them as new posts in search, categories or RSS. No filesystem, child process, environment, remote fetch, private-directory reads, or external runtime assets in src. Browser modules live in scripts and may import only pure shared model code. Article directories contain one index.md plus sanitized local assets. Keep keyboard navigation and reduced-motion support functional.

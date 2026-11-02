@@ -1,0 +1,41 @@
+---
+import '../styles/global.css';
+import { profileUrl } from '../lib/profile';
+interface Props { title?: string; description?: string; }
+const { title, description = '关于 iOS、运行时与性能分析的技术笔记。记录问题，也记录寻找答案的过程。' } = Astro.props;
+const fullTitle = title ? `${title} · ChengzhiHuang` : 'ChengzhiHuang · 技术笔记';
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="author" content="ChengzhiHuang" />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <title>{fullTitle}</title>
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title="ChengzhiHuang RSS" href="/rss.xml" />
+    <script is:inline>
+      try { document.documentElement.dataset.theme = localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch { /* System color scheme remains available. */ }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header shell">
+      <a href="/" class="wordmark">ChengzhiHuang<span class="brand-dot" aria-hidden="true">.</span></a>
+      <nav aria-label="主导航">
+        <a href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>文章</a>
+        <a href={profileUrl} rel="noreferrer">关于 ↗</a>
+        <button id="theme-toggle" class="theme-toggle" aria-label="切换到深色模式" title="切换主题"><span aria-hidden="true">◐</span></button>
+      </nav>
+    </header>
+    <main id="main"><slot /></main>
+    <footer class="site-footer shell"><span>© ChengzhiHuang</span><div><a href="/rss.xml">RSS</a><a href="https://github.com/ChengzhiHuang">GitHub ↗</a><a href="#main">回到顶部 ↑</a></div></footer>
+    <script src="../scripts/theme.ts"></script>
+  </body>
+</html>

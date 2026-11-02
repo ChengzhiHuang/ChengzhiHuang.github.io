@@ -1,0 +1,10 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostList from '../../components/PostList.astro';
+import { categories, categoryKeys } from '../../lib/model';
+import { getIndex } from '../../lib/posts';
+export function getStaticPaths() { return categories.map((category, i) => ({ params: { category: categoryKeys[i] }, props: { category } })); }
+const { category } = Astro.props;
+const posts = (await getIndex()).filter(post => post.category === category);
+---
+<Base title={category}><div class="shell category-page"><a class="back-link" href="/">← 全部文章</a><p class="eyebrow">TOPICS</p><h1>{category}</h1><PostList posts={posts} selected={category} /></div></Base>

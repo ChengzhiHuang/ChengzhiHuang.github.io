@@ -1,0 +1,38 @@
+{
+  "name": "chengzhihuang-blog",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": "22.23.2",
+    "npm": "10.9.8"
+  },
+  "packageManager": "npm@10.9.8",
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1",
+    "preview": "astro preview --host 127.0.0.1",
+    "build": "astro build",
+    "harness:check": "node scripts/harness.mjs check",
+    "harness:verify": "node scripts/harness.mjs verify",
+    "harness:package": "node scripts/harness.mjs package",
+    "setup:local": "node scripts/setup-local.mjs"
+  },
+  "dependencies": {
+    "@astrojs/rss": "4.0.19",
+    "astro": "6.4.8"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "@astrojs/markdown-remark": "7.2.0",
+    "@playwright/test": "1.58.2",
+    "@types/node": "22.19.3",
+    "cheerio": "1.2.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-astro": "1.5.0",
+    "fast-glob": "3.3.3",
+    "fflate": "0.8.2",
+    "gray-matter": "4.0.3",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
+  }
+}

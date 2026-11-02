@@ -1,0 +1,86 @@
+{
+  "app_name": "ExampleApp",
+  "osVersion": "iPhone OS 15.7.3",
+  "cpuType": "ARM-64",
+  "exception": {
+    "codes": "0x0000000000000000, 0x0000000000000000",
+    "rawCodes": [
+      0,
+      0
+    ],
+    "type": "EXC_CRASH",
+    "signal": "SIGKILL"
+  },
+  "termination": {
+    "namespace": "FRONTBOARD",
+    "code": 2343432205,
+    "reason": "process-launch watchdog transgression; 20 second allowance"
+  },
+  "threads": [
+    {
+      "triggered": true,
+      "frames": [
+        {
+          "imageOffset": 5032,
+          "symbol": "objc::lookup8(unsigned char const*, unsigned long, unsigned long long)",
+          "symbolLocation": 648,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 247404,
+          "symbol": "objc::findhash(dyld3::OverflowSafeArray<objc::bstuff, 4294967295ul>&, unsigned int*, unsigned long long*, unsigned int*, unsigned int, dyld3::OverflowSafeArray<objc::PerfectHash::key, 4294967295ul>&)",
+          "symbolLocation": 528,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 246540,
+          "symbol": "objc::PerfectHash::make_perfect(dyld3::OverflowSafeArray<objc::PerfectHash::key, 4294967295ul>&, objc::PerfectHash&)",
+          "symbolLocation": 120,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 44568,
+          "symbol": "objc::PerfectHash::make_perfect(dyld3::OverflowSafeArray<char const*, 4294967295ul> const&, objc::PerfectHash&)",
+          "symbolLocation": 208,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 189408,
+          "symbol": "dyld4::PrebuiltObjC::generateHashTables(dyld4::RuntimeState&)",
+          "symbolLocation": 116,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 50696,
+          "symbol": "dyld4::PrebuiltObjC::make(Diagnostics&, dyld4::RuntimeState&)",
+          "symbolLocation": 2612,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 160184,
+          "symbol": "dyld4::PrebuiltLoaderSet::makeLaunchSet(Diagnostics&, dyld4::RuntimeState&, dyld4::MissingPaths const&)",
+          "symbolLocation": 488,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 105412,
+          "symbol": "dyld4::prepare(dyld4::APIs&, dyld3::MachOAnalyzer const*)",
+          "symbolLocation": 2468,
+          "imageIndex": 0
+        },
+        {
+          "imageOffset": 99504,
+          "symbol": "start",
+          "symbolLocation": 412,
+          "imageIndex": 0
+        }
+      ]
+    }
+  ],
+  "usedImages": [
+    {
+      "name": "dyld",
+      "arch": "arm64"
+    }
+  ]
+}

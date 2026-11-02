@@ -1,0 +1,11 @@
+---
+import Base from '../layouts/Base.astro';
+import PostList from '../components/PostList.astro';
+import { getIndex } from '../lib/posts';
+const posts = await getIndex();
+---
+<Base>
+  <div class="shell home">
+    <PostList posts={posts} heading="h1" />
+  </div>
+</Base>

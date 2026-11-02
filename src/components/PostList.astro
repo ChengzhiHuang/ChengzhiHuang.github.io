@@ -1,0 +1,25 @@
+---
+import { categories, categoryHref, formatDate } from '../lib/model';
+import type { getIndex } from '../lib/posts';
+interface Props { posts: Awaited<ReturnType<typeof getIndex>>; selected?: string; heading?: 'h1' | 'h2'; }
+const { posts, selected = '', heading: Heading = 'h2' } = Astro.props;
+---
+<section class="archive" aria-label="文章归档" data-archive data-category={selected}>
+  <div class="archive-toolbar">
+    <Heading>{selected || '全部文章'} <span class="count" data-count>{posts.length}</span></Heading>
+    <label class="search"><span aria-hidden="true">⌕</span><span class="sr-only">搜索标题或标签</span><input type="search" placeholder="搜索标题、标签…" aria-label="搜索标题或标签" autocomplete="off" data-search /></label>
+  </div>
+  <nav class="categories" aria-label="文章分类">
+    <a href="/" aria-current={!selected ? 'page' : undefined}>全部</a>
+    {categories.map(category => <a href={categoryHref(category)} aria-current={selected === category ? 'page' : undefined}>{category}</a>)}
+  </nav>
+  <p class="sr-only" aria-live="polite" data-search-status></p>
+  <ol class="post-list">
+    {posts.map(post => <li data-post data-title={post.title} data-tags={JSON.stringify(post.tags)} data-category={post.category}>
+      <time datetime={post.date}>{formatDate(post.date)}</time>
+      <div class="post-summary"><a class="post-title" href={post.href}>{post.title}<span class="post-arrow" aria-hidden="true">↗</span></a><p>{post.description}</p><div class="post-meta"><a href={categoryHref(post.category)}>{post.category}</a><span aria-hidden="true">/</span><span>{post.tags.join(' · ')}</span></div></div>
+    </li>)}
+  </ol>
+  <p class="empty-state" data-empty hidden={posts.length > 0}>没有找到相关文章。试试其他标题或标签。</p>
+</section>
+<script src="../scripts/search.ts"></script>
