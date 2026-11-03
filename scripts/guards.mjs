@@ -6,6 +6,8 @@ import { assertGitBoundary, assertWorkflow } from './publication-policy.mjs';
 import matter from 'gray-matter';
 import { load } from 'cheerio';
 import { unzipSync } from 'fflate';
+import { attachmentHref, attachmentLanguage } from '../src/lib/attachments.mjs';
+import { isExternalLink } from '../src/lib/links.mjs';
 
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 // Author-approved exception for an unmodified, public Apple UIKitCore iOS 16.2
@@ -143,13 +145,18 @@ export async function assertArticles(root) {
       if (!(await fs.stat(target)).isFile()) throw new Error(`Missing asset: ${href}`);
     }
   }
+  const readers = new Set();
   for (const asset of await walk(path.join(root, 'src/content/posts'))) {
     const relative = path.relative(path.join(root, 'src/content/posts'), asset).split(path.sep);
-    if (relative[1] !== 'attachments' || !asset.endsWith('.md')) continue;
-    if (relative.length !== 3 || !ids.has(relative[0]) || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(relative[2])) throw new Error('Markdown attachment must belong to an article');
+    if (relative[1] !== 'attachments' || !(asset.endsWith('.md') || attachmentLanguage(asset))) continue;
+    if (relative.length !== 3 || !ids.has(relative[0]) || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(relative[2])) throw new Error('Text attachment must belong to an article');
+    const href = attachmentHref(relative[0], relative[2]);
+    if (readers.has(href)) throw new Error(`Duplicate attachment reader: ${href}`);
+    readers.add(href);
     const bytes = await fs.readFile(asset);
-    if (bytes.subarray(0, 3).toString('hex') !== 'efbbbf') throw new Error(`Markdown attachment needs UTF-8 BOM: ${relative.join('/')}`);
+    if (asset.endsWith('.md') && bytes.subarray(0, 3).toString('hex') !== 'efbbbf') throw new Error(`Markdown attachment needs UTF-8 BOM: ${relative.join('/')}`);
     new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    if (bytes.includes(0)) throw new Error(`Binary data in text attachment: ${relative.join('/')}`);
   }
   return articles;
 }
@@ -188,8 +195,8 @@ export async function assertArtifacts(root) {
   const rss = await fs.readFile(path.join(dist, 'rss.xml'), 'utf8'), sitemap = await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8');
   for (const post of index) if (!rss.includes(post.href) || !sitemap.includes(post.href)) throw new Error(`Feed/sitemap missing ${post.href}`);
   for (const article of source) for (const asset of await walk(path.dirname(article.file))) {
-    if (path.basename(path.dirname(asset)) !== 'attachments' || !asset.endsWith('.md')) continue;
-    const href = `/posts/${article.data.permalink}/attachments/${path.basename(asset, '.md')}/`;
+    if (path.basename(path.dirname(asset)) !== 'attachments' || !(asset.endsWith('.md') || attachmentLanguage(asset))) continue;
+    const href = attachmentHref(article.data.permalink, path.basename(asset));
     await fs.access(path.join(dist, href, 'index.html'));
     if (!sitemap.includes(href) || rss.includes(href) || index.some(post => post.href === href)) throw new Error(`Attachment indexing mismatch: ${href}`);
   }
@@ -215,11 +222,17 @@ export async function assertArtifacts(root) {
     if (sensitiveText(text).length) throw new Error(`Sensitive build output: ${relative}`);
     if (!file.endsWith('.html')) continue;
     const $ = load(text);
+    for (const el of $('a[href]').toArray()) {
+      const anchor = $(el);
+      if (!isExternalLink(anchor.attr('href'))) continue;
+      const rel = new Set((anchor.attr('rel') || '').split(/\s+/));
+      if (anchor.attr('target') !== '_blank' || !rel.has('noopener') || !rel.has('noreferrer')) throw new Error(`External link must open safely in a new tab: ${relative}`);
+    }
     const ids = new Set();
     $('[id]').each((_, el) => { const id=$(el).attr('id'); if(ids.has(id)) throw new Error(`Duplicate HTML id ${id}: ${relative}`); ids.add(id); });
     for (const el of $('a[href],img[src],script[src],link[href]').toArray()) {
       let href = $(el).attr('href') || $(el).attr('src'); if(!href) continue;
-      if (/^https?:\/\//.test(href)) { if(el.tagName === 'img' || el.tagName === 'script' || (el.tagName === 'link' && $(el).attr('rel') === 'stylesheet')) throw new Error(`Remote runtime resource: ${href}`); continue; }
+      if (/^(?:https?:)?\/\//.test(href)) { if(el.tagName === 'img' || el.tagName === 'script' || (el.tagName === 'link' && $(el).attr('rel') === 'stylesheet')) throw new Error(`Remote runtime resource: ${href}`); continue; }
       if (href.startsWith('mailto:') || href.startsWith('data:')) continue;
       const [pathname, fragment] = href.split('#');
       let target = pathname ? path.resolve(pathname.startsWith('/') ? dist : path.dirname(file), '.' + (pathname.startsWith('/') ? pathname.split('?')[0] : '/' + pathname.split('?')[0])) : file;

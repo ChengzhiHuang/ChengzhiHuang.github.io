@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inside, walk } from './guards.mjs';
+import { attachmentHref } from '../src/lib/attachments.mjs';
 
 // Markdown attachments stay alongside their article. The build copies only this
 // explicit subtree; raw exports or adjacent workspace files are never considered.
@@ -14,7 +15,7 @@ export function remarkAttachments() {
       if (node.type === 'link' && node.url?.startsWith('./attachments/')) {
         const name = decodeURIComponent(node.url.slice('./attachments/'.length));
         if (!/^[a-zA-Z0-9._-]+$/.test(name) || name === '..') throw new Error('Invalid attachment name');
-        node.url = name.endsWith('.md') ? `/posts/${slug}/attachments/${name.slice(0, -3)}/` : `/files/${slug}/${name}`;
+        node.url = attachmentHref(slug, name);
       }
       for (const child of node.children || []) visit(child);
     }

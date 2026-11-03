@@ -30,9 +30,15 @@ for(const [id,title,category,tags] of [['sample-variables','变量的生命周�
       '```cpp','int **head, **tail;','value = ~~bits;','/* **literal** and *name* */','```','',
       '<table class="vm-region-table"><thead><tr><th colspan="6">示例内存区域</th></tr><tr><th scope="col">类型</th><th scope="col">地址</th><th scope="col">大小</th><th scope="col">权限</th><th scope="col">共享</th><th scope="col">备注</th></tr></thead><tbody><tr><td>Stack</td><td>1000–2000</td><td>示例</td><td>rw</td><td>private</td><td>合成数据</td></tr><tr><td colspan="6">GAP</td></tr></tbody></table>','',
       '[中文附录](./attachments/notes.md)','',
+      '[中文源码](./attachments/example.py) [大源码](./attachments/large.c)','',
+      '[公开参考](https://example.com/reference) [本站绝对地址](https://chengzhihuang.github.io/about/) [本页锚点](#原理) [邮件](mailto:reader@example.com)','',
+      '<a href="//example.org/html" rel="nofollow">HTML 外链</a>','',
+      '<table class="qos-table"><thead><tr><th scope="col">场景</th><th scope="col">队列 A</th><th scope="col">队列 B</th><th scope="col">队列 C</th></tr></thead><tbody><tr><th scope="row">场景一</th><td rowspan="2">共同结果</td><td colspan="2">横向合并</td></tr><tr><th scope="row">场景二</th><td>结果 B</td><td>结果 C</td></tr></tbody></table>','',
     ].join('\n');
     await fs.appendFile(file,examples);
     await fs.writeFile(path.join(dir,'attachments/notes.md'),'\uFEFF# 中文技术附录\n\n## 段信息\n\n|段|变化|\n|---|---|\n|__TEXT|增长|\n\n```cpp\nint appendix = 42;\n```\n');
+    await fs.writeFile(path.join(dir,'attachments/example.py'),'#!/usr/bin/env python3\n# 中文注释：保持原文件字节\nprint("<script>只显示文本</script>")\n');
+    await fs.writeFile(path.join(dir,'attachments/large.c'),'/* 大源码完整保留 */\n'+'int value;\n'.repeat(28000));
   }
 }
 const result=spawnSync(process.execPath,['node_modules/astro/bin/astro.mjs','build'],{cwd:target,env:{...process.env,ASTRO_TELEMETRY_DISABLED:'1'},stdio:'inherit'});

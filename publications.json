@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "articles": [
     {
+      "permalink": "associated-object-thread-safety",
+      "status": "approved",
+      "reviewer": "ChengzhiHuang",
+      "reviewedAt": "2026-11-03T04:17:19.177337+00:00",
+      "imagesManuallyReviewed": true,
+      "sha256": "3f869aced403fb88891ebb48c5dbfdf1aa6751fce1c43cef3de3923086e93fba"
+    },
+    {
       "permalink": "block-super",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
@@ -29,9 +37,9 @@
       "permalink": "gcd-qos",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-03T04:17:19.177337+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "a0ff19e41a02d36e2843f8be49680f7a5b2a40e9c655d94691722290942821ce"
+      "sha256": "c9e63390e5b65eec03bc0ecddda5137d4148453d2181b84ae3a88c8ba7d69f48"
     },
     {
       "permalink": "inline-static",
@@ -40,6 +48,14 @@
       "reviewedAt": "2026-11-02T12:06:28.862Z",
       "imagesManuallyReviewed": true,
       "sha256": "eb639b34524226059ae282803e451cefd92dc5733a6dcb05fa095e8f698d52a6"
+    },
+    {
+      "permalink": "objc-uninitialized-locals",
+      "status": "approved",
+      "reviewer": "ChengzhiHuang",
+      "reviewedAt": "2026-11-03T04:17:19.177337+00:00",
+      "imagesManuallyReviewed": true,
+      "sha256": "4e491391e1beaf4831e0aa1864ecc3f2cad6350a6f72437e8f59fcf40582bd08"
     },
     {
       "permalink": "runloop-autoreleasepool",

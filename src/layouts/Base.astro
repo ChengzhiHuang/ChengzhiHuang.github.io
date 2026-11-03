@@ -30,12 +30,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       <a href="/" class="wordmark">ChengzhiHuang<span class="brand-dot" aria-hidden="true">.</span></a>
       <nav aria-label="主导航">
         <a href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>文章</a>
-        <a href={profileUrl} rel="noreferrer">关于 ↗</a>
+        <a href={profileUrl} target="_blank" rel="noopener noreferrer">关于 ↗</a>
         <button id="theme-toggle" class="theme-toggle" aria-label="切换到深色模式" title="切换主题"><span aria-hidden="true">◐</span></button>
       </nav>
     </header>
     <main id="main"><slot /></main>
-    <footer class="site-footer shell"><span>© ChengzhiHuang</span><div><a href="/rss.xml">RSS</a><a href="https://github.com/ChengzhiHuang">GitHub ↗</a><a href="#main">回到顶部 ↑</a></div></footer>
+    <footer class="site-footer shell"><span>© ChengzhiHuang</span><div><a href="/rss.xml">RSS</a><a href="https://github.com/ChengzhiHuang" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a href="#main">回到顶部 ↑</a></div></footer>
     <script src="../scripts/theme.ts"></script>
   </body>
 </html>

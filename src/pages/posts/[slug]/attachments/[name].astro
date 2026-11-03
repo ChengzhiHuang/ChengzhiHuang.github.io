@@ -1,22 +1,31 @@
 ---
 import { render } from 'astro:content';
+import { Code } from 'astro:components';
 import Base from '../../../../layouts/Base.astro';
 import ArticleTools from '../../../../components/ArticleTools.astro';
 import { getAttachments, postHref } from '../../../../lib/posts';
+import { codeHighlightLimit } from '../../../../lib/attachments.mjs';
 export async function getStaticPaths() {
   return (await getAttachments()).map(attachment => ({ params: { slug: attachment.owner.data.permalink, name: attachment.name }, props: { attachment } }));
 }
 const { attachment } = Astro.props;
-const { Content, headings } = await render(attachment.entry);
-const title = headings.find(h => h.depth === 1)?.text || attachment.name;
+const rendered = attachment.kind === 'markdown' ? await render(attachment.entry) : null;
+const Content = rendered?.Content;
+const headings = rendered?.headings || [];
+const title = headings.find(h => h.depth === 1)?.text || attachment.filename;
 const toc = headings.filter(h => h.depth >= 2 && h.depth <= 3);
+// Astro Code removes one terminal newline; append a sentinel to preserve the file's own ending.
+const highlightedSource = attachment.kind === 'code' ? `${attachment.text}\n` : '';
 ---
 <Base title={title} description={`${attachment.owner.data.title}的技术附录。`}>
   <div class="article-shell appendix-shell">
-    <div class="appendix-actions"><a href={postHref(attachment.owner.data.permalink)}>← 返回正文</a><a href={attachment.download} download={`${attachment.name}.md`}>下载 Markdown ↓</a></div>
+    <div class="appendix-actions"><a href={postHref(attachment.owner.data.permalink)}>← 返回正文</a><a href={attachment.download} download={attachment.filename}>{attachment.kind === 'markdown' ? '下载 Markdown ↓' : '下载原文件 ↓'}</a></div>
     <div class="article-grid">
       {toc.length > 0 && <aside class="toc"><details open><summary>附录目录</summary><nav aria-label="附录目录"><ol>{toc.map(h => <li class:list={{ nested: h.depth === 3 }}><a href={`#${h.slug}`}>{h.text}</a></li>)}</ol></nav></details></aside>}
-      <article class="prose appendix"><Content /></article>
+      <article class="prose appendix">
+        {Content && <Content />}
+        {attachment.kind === 'code' && <><h1>{title}</h1>{attachment.text.length > codeHighlightLimit ? <pre><code>{attachment.text}</code></pre> : <Code code={highlightedSource} lang={attachment.language} themes={{ light: 'github-light', dark: 'github-dark' }} />}</>}
+      </article>
     </div>
     <div class="article-end"><span>ChengzhiHuang</span><a href={postHref(attachment.owner.data.permalink)}>返回正文 →</a></div>
   </div>

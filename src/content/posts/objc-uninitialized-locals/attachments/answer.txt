@@ -1,0 +1,7 @@
+ - (void)sample {
+    NSObject *obj; // nil
+    BOOL boolean; // 未定义
+    NSInteger inter; // 未定义
+    char *pointer; // 未定义
+    static BOOL staticBoolean; // false / 0
+}

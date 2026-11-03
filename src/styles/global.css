@@ -47,6 +47,7 @@
   .prose pre del{text-decoration-thickness:1.5px;}
   .prose .vm-region-table td:not([colspan]),.prose .vm-region-table th[scope]{white-space:nowrap;}
   .prose .vm-region-table td[colspan]{font-family:ui-monospace,monospace;}
+  .prose .qos-table th,.prose .qos-table td{white-space:nowrap;}
   .prose.appendix>h1{font-size:30px;margin-bottom:30px;}
   @media(max-width:600px){.prose .tldr{padding:18px 17px;}.prose.appendix>h1{font-size:25px;}}
 }

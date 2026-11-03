@@ -1,3 +1,20 @@
+import { isExternalLink } from '../src/lib/links.mjs';
+
+// Run after rehype-raw so ordinary Markdown, reference links and HTML agree.
+export function rehypeExternalLinks() {
+  return tree => {
+    function visit(node) {
+      if (node.type === 'element' && node.tagName === 'a' && isExternalLink(node.properties?.href || '')) {
+        node.properties.target = '_blank';
+        const rel = node.properties.rel || [];
+        node.properties.rel = [...new Set([...(Array.isArray(rel) ? rel : rel.split(/\s+/)), 'noopener', 'noreferrer'])];
+      }
+      for (const child of node.children || []) visit(child);
+    }
+    visit(tree);
+  };
+}
+
 // Explicit presentation markers only; ordinary code is never interpreted as prose.
 export function remarkTldr() {
   return tree => {

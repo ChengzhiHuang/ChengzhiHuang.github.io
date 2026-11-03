@@ -8,7 +8,8 @@ import { zipSync, strToU8 } from 'fflate';
 import { matchesPost } from '../src/lib/model.ts';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import { load } from 'cheerio';
-import { remarkTldr, annotatedCode } from '../scripts/markdown.mjs';
+import { remarkTldr, annotatedCode, rehypeExternalLinks } from '../scripts/markdown.mjs';
+import rehypeRaw from 'rehype-raw';
 import { remarkAttachments } from '../scripts/assets.mjs';
 import { pagesWorkflow, approvedRemote } from '../scripts/publication-policy.mjs';
 import { git, commitSha } from '../scripts/publication-policy.mjs';
@@ -55,7 +56,7 @@ test('production artifact broken link fails',async t=>{
  const root=await temp(t);await fs.mkdir(path.join(root,'dist'));await fs.writeFile(path.join(root,'dist/search.json'),'[{}]');await fs.writeFile(path.join(root,'dist/rss.xml'),'undefined');await fs.writeFile(path.join(root,'dist/sitemap.xml'),'undefined');await fs.writeFile(path.join(root,'dist/index.html'),'<a href="/missing/">bad</a>');await assert.rejects(()=>assertArtifacts(root),/ENOENT/);
 });
 
-const presentation = () => createMarkdownProcessor({remarkPlugins:[remarkTldr,remarkAttachments],shikiConfig:{themes:{light:'github-light',dark:'github-dark'},transformers:[annotatedCode()]}});
+const presentation = () => createMarkdownProcessor({remarkPlugins:[remarkTldr,remarkAttachments],rehypePlugins:[rehypeRaw,rehypeExternalLinks],shikiConfig:{themes:{light:'github-light',dark:'github-dark'},transformers:[annotatedCode()]}});
 test('TLDR preserves nested lists and images without adding a TOC heading',async()=>{
  const renderer=await presentation();const result=await renderer.render('> [!TLDR]\n>\n> 1. 概要\n>    1. 细节\n>\n> ![示意图](./diagram.png)\n\n## 正文\n');const $=load(result.code);
  assert.equal($('aside.tldr').length,1);assert.equal($('.tldr-label').text(),'TL;DR');assert.equal($('.tldr ol ol li').text(),'细节');assert.equal($('.tldr img').length,1);assert.deepEqual(result.metadata.headings.map(h=>h.text),['正文']);
@@ -74,9 +75,23 @@ test('inline code emphasis and merged cells remain semantic HTML',async()=>{
  const renderer=await presentation();const result=await renderer.render('<code>Loader::<strong>Prepared</strong>::fix</code>\n\n直接 **`po [Example current]`** 查看。\n\n<table><thead><tr><th colspan="6">说明</th></tr></thead><tbody><tr><td colspan="6">GAP</td></tr></tbody></table>');const $=load(result.code);
  assert.equal($('code').first().text(),'Loader::Prepared::fix');assert.equal($('code strong').text(),'Prepared');assert.equal($('strong code').text(),'po [Example current]');assert.equal($('[colspan="6"]').length,2);
 });
-test('Markdown attachment links use a reader route and binary links keep their file route',async()=>{
- const renderer=await presentation();const result=await renderer.render('[附录](./attachments/notes.md) [源码](./attachments/example.c)',{fileURL:new URL('file:///example/src/content/posts/sample/index.md')});const $=load(result.code);
- assert.equal($('a').eq(0).attr('href'),'/posts/sample/attachments/notes/');assert.equal($('a').eq(1).attr('href'),'/files/sample/example.c');
+test('text attachments use readers while binary downloads and existing Markdown routes stay stable',async()=>{
+ const renderer=await presentation();const result=await renderer.render('[附录](./attachments/notes.md) [源码](./attachments/example.c) [压缩包](./attachments/demo.zip)',{fileURL:new URL('file:///example/src/content/posts/sample/index.md')});const $=load(result.code);
+ assert.equal($('a').eq(0).attr('href'),'/posts/sample/attachments/notes/');assert.equal($('a').eq(1).attr('href'),'/posts/sample/attachments/example.c/');assert.equal($('a').eq(2).attr('href'),'/files/sample/demo.zip');
+});
+test('external Markdown, reference, autolink and raw HTML links open a new tab without changing local or code links',async()=>{
+ const renderer=await presentation();const $=load((await renderer.render('[外链](https://example.com) [引用][ref] <https://example.org>\n\n[ref]: https://example.net\n\n<a href="//example.com" rel="nofollow">HTML</a>\n\n[本站](https://chengzhihuang.github.io/posts/sample/) [本页](#section) [相对](/about/) [邮件](mailto:reader@example.com)\n\n```html\n<a href="https://example.com">literal</a>\n```')).code);
+ for(const el of $('a').toArray().slice(0,4)){assert.equal($(el).attr('target'),'_blank');assert.match($(el).attr('rel'),/noopener/);assert.match($(el).attr('rel'),/noreferrer/);}
+ assert.match($('a').eq(3).attr('rel'),/nofollow/);
+ for(const el of $('a').toArray().slice(4))assert.equal($(el).attr('target'),undefined);
+ assert.equal($('pre a').length,0);assert.equal($('pre code').text(),'<a href="https://example.com">literal</a>');
+});
+test('source attachments reject invalid UTF-8, binary payloads and colliding reader routes',async t=>{
+ const root=await temp(t),directory=path.join(root,'src/content/posts/sample/attachments');await fs.mkdir(directory);const file=path.join(directory,'example.py');
+ await fs.writeFile(file,'#!/usr/bin/env python3\n# 中文注释\n');await assertArticles(root);
+ await fs.writeFile(file,Buffer.from([255]));await assert.rejects(()=>assertArticles(root),/encoded data/);
+ await fs.writeFile(file,'a\0b');await assert.rejects(()=>assertArticles(root),/Binary data/);
+ await fs.writeFile(file,'# 中文');await fs.writeFile(file+'.md','\uFEFF# 碰撞');await assert.rejects(()=>assertArticles(root),/Duplicate attachment reader/);
 });
 test('Markdown attachments require an owner and valid BOM-encoded UTF-8',async t=>{
  const root=await temp(t),directory=path.join(root,'src/content/posts/sample/attachments');await fs.mkdir(directory);const file=path.join(directory,'notes.md');

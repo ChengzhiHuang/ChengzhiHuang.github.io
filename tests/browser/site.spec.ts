@@ -31,6 +31,31 @@ test('Markdown appendix reads as UTF-8, downloads unchanged and stays out of art
  const index=await (await request.get('/search.json')).json();expect(index).toHaveLength(2);expect(await (await request.get('/rss.xml')).text()).not.toContain(route);expect(await (await request.get('/sitemap.xml')).text()).toContain(route);
  await page.goto(raw);expect(await page.evaluate(()=>document.characterSet)).toBe('UTF-8');await expect(page.locator('body')).toContainText('中文技术附录');
 });
+test('source readers display UTF-8, escape HTML, copy code and download exact original bytes',async({page,context,request})=>{
+ await context.grantPermissions(['clipboard-read','clipboard-write']);
+ const route='/posts/sample-compiler/attachments/example.py/';
+ const raw=await (await request.get('/files/sample-compiler/example.py')).body();
+ await page.goto('/posts/sample-compiler/');await page.getByRole('link',{name:'中文源码',exact:true}).click();await expect(page).toHaveURL(new RegExp(route+'$'));
+ expect(await page.evaluate(()=>document.characterSet)).toBe('UTF-8');await expect(page.locator('.prose pre')).toContainText('中文注释：保持原文件字节');await expect(page.locator('.prose script')).toHaveCount(0);
+ await page.getByRole('button',{name:'复制代码'}).click();await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe(raw.toString('utf8'));
+ const event=page.waitForEvent('download');await page.getByRole('link',{name:'下载原文件 ↓'}).click();const download=await event;expect(await fs.readFile((await download.path())!)).toEqual(raw);
+ expect(await (await request.get('/rss.xml')).text()).not.toContain(route);expect(await (await request.get('/sitemap.xml')).text()).toContain(route);expect(await (await request.get('/search.json')).json()).toHaveLength(2);
+ await page.getByRole('link',{name:'← 返回正文',exact:true}).click();await page.getByRole('link',{name:'大源码',exact:true}).click();expect((await page.locator('pre code').textContent())?.length).toBeGreaterThan(280000);await expect(page.locator('pre code span')).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+test('external links open another tab and keep the article open; local navigation stays in place',async({page,context})=>{
+ await page.goto('/posts/sample-compiler/');
+ for(const name of ['关于 ↗','GitHub ↗','公开参考','HTML 外链']){const link=page.getByRole('link',{name,exact:true});await expect(link).toHaveAttribute('target','_blank');await expect(link).toHaveAttribute('rel',/noopener/);await expect(link).toHaveAttribute('rel',/noreferrer/);}
+ for(const name of ['本站绝对地址','本页锚点','邮件','中文源码'])await expect(page.getByRole('link',{name,exact:true})).not.toHaveAttribute('target','_blank');
+ await context.route('https://example.com/reference',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Reference</title>Reference'}));
+ const popupEvent=page.waitForEvent('popup');await page.getByRole('link',{name:'公开参考',exact:true}).click();const popup=await popupEvent;await popup.waitForLoadState();await expect(popup).toHaveTitle('Reference');await expect(page).toHaveURL(/\/posts\/sample-compiler\/$/);expect(await popup.evaluate(()=>window.opener)).toBeNull();await popup.close();
+ await page.getByRole('link',{name:'本页锚点',exact:true}).click();expect(decodeURIComponent(new URL(page.url()).hash)).toBe('#原理');
+});
+test('row and column spans preserve a complete grid and scroll on narrow screens',async({page},info)=>{
+ await page.goto('/posts/sample-compiler/');const table=page.locator('.qos-table');await expect(table.locator('[rowspan="2"]')).toHaveText('共同结果');await expect(table.locator('[colspan="2"]')).toHaveText('横向合并');await expect(table.locator('tbody tr')).toHaveCount(2);await expect(table.locator('tbody tr').last()).toContainText('结果 B');
+ if(info.project.name==='mobile')expect(await table.evaluate(el=>{el.scrollLeft=100;return el.scrollLeft>0;})).toBe(true);
+ await table.scrollIntoViewIfNeeded();await table.screenshot({path:info.outputPath('merged-table-light.png')});await page.locator('#theme-toggle').click();await table.screenshot({path:info.outputPath('merged-table-dark.png')});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
 test('articles render, code copies, TOC scrolls, images zoom and Escape restores focus',async ({page,context},info)=>{
  await context.grantPermissions(['clipboard-read','clipboard-write']);await page.goto('/');await page.locator('.post-title').first().click();
  await expect(page.locator('.prose')).toBeVisible();await expect(page.locator('.toc')).toBeVisible();

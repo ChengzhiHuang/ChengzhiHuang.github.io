@@ -1235,15 +1235,20 @@ _dispatch_lane_drain(dispatch_lane_t dq, dispatch_invoke_context_t dic,
 
 纵坐标是 dispatch\_block\_create\_with\_qos\_class 创建时使用的 QoS ；横坐标是对应 QoS 的 global queue 。
 
-|Block QOS / Global Queue Priority|main queue|HIGH|DEFAULT|LOW|BACKGROUND|
-|---|---|---|---|---|---|
-|未使用带 qos 创建 block `^{}`|INTERACTIVE|INITIATED|INITIATED|UTILITY|BACKGROUND|
-|QOS\_CLASS\_USER\_INTERACTIVE|||INTERACTIVE|||
-|QOS\_CLASS\_USER\_INITIATED|||INITIATED|||
-|QOS\_CLASS\_DEFAULT\(特殊类型\)|||DEFAULT|||
-|QOS\_CLASS\_UTILITY|||UTILITY|||
-|QOS\_CLASS\_BACKGROUND|||BACKGROUND|||
-|QOS\_CLASS\_UNSPECIFIED\(特殊类型\)|||DEFAULT|||
+<table class="qos-table">
+<thead>
+<tr><th scope="col">Block QOS / Global Queue Priority</th><th scope="col">main queue</th><th scope="col">HIGH</th><th scope="col">DEFAULT</th><th scope="col">LOW</th><th scope="col">BACKGROUND</th></tr>
+</thead>
+<tbody>
+<tr><th scope="row">未使用带 qos 创建 block <code>^{}</code></th><td rowspan="7">INTERACTIVE</td><td rowspan="7">INITIATED</td><td>INITIATED</td><td rowspan="7">UTILITY</td><td rowspan="7">BACKGROUND</td></tr>
+<tr><th scope="row">QOS_CLASS_USER_INTERACTIVE</th><td>INTERACTIVE</td></tr>
+<tr><th scope="row">QOS_CLASS_USER_INITIATED</th><td>INITIATED</td></tr>
+<tr><th scope="row">QOS_CLASS_DEFAULT(特殊类型)</th><td>DEFAULT</td></tr>
+<tr><th scope="row">QOS_CLASS_UTILITY</th><td>UTILITY</td></tr>
+<tr><th scope="row">QOS_CLASS_BACKGROUND</th><td>BACKGROUND</td></tr>
+<tr><th scope="row">QOS_CLASS_UNSPECIFIED(特殊类型)</th><td>DEFAULT</td></tr>
+</tbody>
+</table>
 
 我们看到对于 `LOW` / `BACKGROUND` / `HIGH` 的 global queue ，不论传递什么，都无法改变执行 Block 时的 qos 。
 
@@ -1258,14 +1263,19 @@ _dispatch_lane_drain(dispatch_lane_t dq, dispatch_invoke_context_t dic,
 
 纵坐标是 dispatch\_block 创建时使用的 QoS ；横坐标是 target queue 的枚举。
 
-|Block QOS / Global Queue Priority|main queue|HIGH|DEFAULT|LOW|BACKGROUND|
-|---|---|---|---|---|---|
-|QOS\_CLASS\_USER\_INTERACTIVE|INTERACTIVE|INTERACTIVE||||
-|QOS\_CLASS\_USER\_INITIATED||INITIATED||||
-|QOS\_CLASS\_DEFAULT\(特殊类型\)||INITIATED|DEFAULT|||
-|QOS\_CLASS\_UTILITY||INITIATED|UTILITY|||
-|QOS\_CLASS\_BACKGROUND||INITIATED|BACKGROUND|UTILITY|BACKGROUND|
-|QOS\_CLASS\_UNSPECIFIED\(特殊类型\)||INITIATED|DEFAULT|UTILITY|BACKGROUND|
+<table class="qos-table">
+<thead>
+<tr><th scope="col">Block QOS / Global Queue Priority</th><th scope="col">main queue</th><th scope="col">HIGH</th><th scope="col">DEFAULT</th><th scope="col">LOW</th><th scope="col">BACKGROUND</th></tr>
+</thead>
+<tbody>
+<tr><th scope="row">QOS_CLASS_USER_INTERACTIVE</th><td rowspan="6">INTERACTIVE</td><td colspan="4">INTERACTIVE</td></tr>
+<tr><th scope="row">QOS_CLASS_USER_INITIATED</th><td colspan="4">INITIATED</td></tr>
+<tr><th scope="row">QOS_CLASS_DEFAULT(特殊类型)</th><td>INITIATED</td><td colspan="3">DEFAULT</td></tr>
+<tr><th scope="row">QOS_CLASS_UTILITY</th><td>INITIATED</td><td colspan="3">UTILITY</td></tr>
+<tr><th scope="row">QOS_CLASS_BACKGROUND</th><td>INITIATED</td><td>BACKGROUND</td><td>UTILITY</td><td>BACKGROUND</td></tr>
+<tr><th scope="row">QOS_CLASS_UNSPECIFIED(特殊类型)</th><td>INITIATED</td><td>DEFAULT</td><td>UTILITY</td><td>BACKGROUND</td></tr>
+</tbody>
+</table>
 
 可以看到尽管 Enforce 有设置，只要 dispatch 到 main  queue 里，执行时依旧保持最高 QoS ，这与我们前面的分析能够 match ；对于 High 的 gloabl queue ，也保持了较高的 QoS。
 
@@ -1311,12 +1321,17 @@ dispatch_async(self.queue, ^{
 
 由于 WWDC 的文档有提到，GCD 会自动从 calling thread 传递 QoS ，因此我们需要确认 calling thread 的 QoS 是否会影响别的实际执行时的 QoS 。使用的是 dispatch\_async 。
 
-|From/TO|HIGH|DEFAULT\(特殊类型\)|LOW|BACKGROUND|
-|---|---|---|---|---|
-|HIGH|INITIATED<br>|DEFAULT|UTILITY|BACKGROUND|
-|DEFAULT\(特殊类型\)||DEFAULT|||
-|LOW||UTILITY|||
-|BACKGROUND||BACKGROUND|||
+<table class="qos-table">
+<thead>
+<tr><th scope="col">From/TO</th><th scope="col">HIGH</th><th scope="col">DEFAULT(特殊类型)</th><th scope="col">LOW</th><th scope="col">BACKGROUND</th></tr>
+</thead>
+<tbody>
+<tr><th scope="row">HIGH</th><td rowspan="4">INITIATED<br></td><td>DEFAULT</td><td rowspan="4">UTILITY</td><td rowspan="4">BACKGROUND</td></tr>
+<tr><th scope="row">DEFAULT(特殊类型)</th><td>DEFAULT</td></tr>
+<tr><th scope="row">LOW</th><td>UTILITY</td></tr>
+<tr><th scope="row">BACKGROUND</th><td>BACKGROUND</td></tr>
+</tbody>
+</table>
 
 ```cpp
 dispatch_block_t __block direct_block_2 = ^{
