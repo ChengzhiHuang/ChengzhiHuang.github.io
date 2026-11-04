@@ -3,7 +3,6 @@ import fs from 'node:fs/promises';
 test.beforeEach(async ({ context }) => { await context.route('**/*', route => { const url=new URL(route.request().url()); return url.hostname==='127.0.0.1' ? route.continue() : route.abort('blockedbyclient'); }); });
 test('home, category, Chinese search, theme and keyboard',async ({page},info)=>{
  await page.goto('/');await expect(page).toHaveTitle(/ChengzhiHuang/);await expect(page.locator('h1')).toContainText('全部文章');await expect(page.locator('.intro')).toHaveCount(0);
- await expect(page.getByRole('link',{name:'关于 ↗',exact:true})).toHaveAttribute('href','https://github.com/SwiftOldDriver/iOS-Weekly/blob/master/Contributors/README.md#%E8%80%81%E9%BB%84--chengzhihuang');
  const posts=page.locator('[data-post]');expect(await posts.count()).toBeGreaterThan(0);
  await page.getByRole('searchbox').fill('不存在的文章');await expect(page.locator('[data-empty]')).toBeVisible();
  await page.getByRole('searchbox').fill('变量');expect(await page.locator('[data-post]:visible').count()).toBeGreaterThan(0);
@@ -11,6 +10,57 @@ test('home, category, Chinese search, theme and keyboard',async ({page},info)=>{
  await page.screenshot({path:info.outputPath('home.png'),fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.locator('.categories a').filter({hasText:'编译与链接'}).click();await expect(page.locator('h1')).toHaveText('编译与链接');await page.keyboard.press('Tab');await expect(page.locator(':focus')).toBeVisible();
+});
+test('the shared header opens the About page in place and the profile works in both themes', async ({ page }, info) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  const wordmark = page.locator('.wordmark');
+  const nav = page.getByRole('navigation', { name: '主导航' });
+  const about = nav.getByRole('link', { name: '关于', exact: true });
+  const posts = nav.getByRole('link', { name: '文章', exact: true });
+
+  await page.goto('/');
+  await expect(wordmark.getByText('iOS Developer', { exact: true })).toBeVisible();
+  await expect(about).toHaveAttribute('href', '/about/');
+  await expect(posts).toHaveAttribute('aria-current', 'page');
+  await posts.focus();
+  await page.keyboard.press('Tab');
+  await expect(about).toBeFocused();
+  await expect(about).toHaveCSS('outline-style', 'solid');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/about\/$/);
+  await expect(about).toHaveAttribute('aria-current', 'page');
+  await expect(posts).not.toHaveAttribute('aria-current', 'page');
+
+  const main = page.getByRole('main');
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText('ChengzhiHuang');
+  await expect(main.getByText('老黄 · iOS Developer', { exact: true })).toBeVisible();
+  await expect(main).toContainText('老司机技术成员，周报轮值主编。目前就职于字节跳动，参与西瓜视频质量与稳定性工作。对 OOM/Watchdog 较为了解并长期投入。月球厨师；Amphibian 与 打越钢太郎 的粉丝。');
+  const source = main.getByRole('link', { name: '老司机 iOS 周报原文 ↗', exact: true });
+  await expect(source).toHaveAttribute('href', 'https://github.com/SwiftOldDriver/iOS-Weekly/blob/master/Contributors/README.md#%E8%80%81%E9%BB%84--chengzhihuang');
+  await expect(source).toHaveAttribute('target', '_blank');
+  await expect(source).toHaveAttribute('rel', /\bnoopener\b/);
+  await expect(source).toHaveAttribute('rel', /\bnoreferrer\b/);
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.screenshot({ path: info.outputPath('about-light.png'), fullPage: true });
+  await page.getByRole('button', { name: '切换到深色模式' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.screenshot({ path: info.outputPath('about-dark.png'), fullPage: true });
+
+  await page.goto('/posts/sample-compiler/');
+  await expect(wordmark.getByText('iOS Developer', { exact: true })).toBeVisible();
+  await about.click();
+  await expect(page).toHaveURL(/\/about\/$/);
+  await expect(about).toHaveAttribute('aria-current', 'page');
+
+  if (info.project.name === 'mobile') {
+    await page.setViewportSize({ width: 320, height: 844 });
+    const brandBox = await wordmark.boundingBox();
+    const navBox = await nav.boundingBox();
+    expect(brandBox!.x + brandBox!.width).toBeLessThan(navBox!.x);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+    await page.screenshot({ path: info.outputPath('about-320.png'), fullPage: true });
+  }
 });
 test('TLDR, inline emphasis, code annotations and merged rows render in both themes',async({page,context},info)=>{
  await context.grantPermissions(['clipboard-read','clipboard-write']);await page.goto('/posts/sample-compiler/');
@@ -45,7 +95,7 @@ test('source readers display UTF-8, escape HTML, copy code and download exact or
 });
 test('external links open another tab and keep the article open; local navigation stays in place',async({page,context})=>{
  await page.goto('/posts/sample-compiler/');
- for(const name of ['关于 ↗','GitHub ↗','公开参考','HTML 外链']){const link=page.getByRole('link',{name,exact:true});await expect(link).toHaveAttribute('target','_blank');await expect(link).toHaveAttribute('rel',/noopener/);await expect(link).toHaveAttribute('rel',/noreferrer/);}
+ for(const name of ['GitHub ↗','公开参考','HTML 外链']){const link=page.getByRole('link',{name,exact:true});await expect(link).toHaveAttribute('target','_blank');await expect(link).toHaveAttribute('rel',/noopener/);await expect(link).toHaveAttribute('rel',/noreferrer/);}
  for(const name of ['本站绝对地址','本页锚点','邮件','中文源码'])await expect(page.getByRole('link',{name,exact:true})).not.toHaveAttribute('target','_blank');
  await context.route('https://example.com/reference',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Reference</title>Reference'}));
  const popupEvent=page.waitForEvent('popup');await page.getByRole('link',{name:'公开参考',exact:true}).click();const popup=await popupEvent;await popup.waitForLoadState();await expect(popup).toHaveTitle('Reference');await expect(page).toHaveURL(/\/posts\/sample-compiler\/$/);expect(await popup.evaluate(()=>window.opener)).toBeNull();await popup.close();

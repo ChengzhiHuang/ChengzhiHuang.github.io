@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import { profileUrl } from '../lib/profile';
 interface Props { title?: string; description?: string; }
 const { title, description = '关于 iOS、运行时与性能分析的技术笔记。记录问题，也记录寻找答案的过程。' } = Astro.props;
 const fullTitle = title ? `${title} · ChengzhiHuang` : 'ChengzhiHuang · 技术笔记';
@@ -27,10 +26,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
     <header class="site-header shell">
-      <a href="/" class="wordmark">ChengzhiHuang<span class="brand-dot" aria-hidden="true">.</span></a>
+      <a href="/" class="wordmark">
+        <span>ChengzhiHuang<span class="brand-dot" aria-hidden="true">.</span></span>
+        <span class="wordmark-role" lang="en">iOS Developer</span>
+      </a>
       <nav aria-label="主导航">
         <a href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>文章</a>
-        <a href={profileUrl} target="_blank" rel="noopener noreferrer">关于 ↗</a>
+        <a href="/about/" aria-current={Astro.url.pathname === '/about/' ? 'page' : undefined}>关于</a>
         <button id="theme-toggle" class="theme-toggle" aria-label="切换到深色模式" title="切换主题"><span aria-hidden="true">◐</span></button>
       </nav>
     </header>

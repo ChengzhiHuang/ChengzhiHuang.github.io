@@ -2,4 +2,13 @@
 import Base from '../layouts/Base.astro';
 import { profileUrl } from '../lib/profile';
 ---
-<Base title="关于"><div class="shell about"><h1>ChengzhiHuang</h1><div class="prose"><p><a href={profileUrl} target="_blank" rel="noopener noreferrer">个人介绍 · iOS-Weekly ↗</a></p></div></div></Base>
+<Base title="关于" description="老黄（ChengzhiHuang），iOS Developer、老司机技术成员和周报轮值主编。">
+  <div class="shell about">
+    <h1>ChengzhiHuang</h1>
+    <p class="about-role">老黄 · <span lang="en">iOS Developer</span></p>
+    <div class="prose">
+      <p>老司机技术成员，周报轮值主编。目前就职于字节跳动，参与西瓜视频质量与稳定性工作。对 OOM/Watchdog 较为了解并长期投入。月球厨师；Amphibian 与 打越钢太郎 的粉丝。</p>
+      <p class="about-source"><a href={profileUrl} target="_blank" rel="noopener noreferrer">老司机 iOS 周报原文 ↗</a></p>
+    </div>
+  </div>
+</Base>
