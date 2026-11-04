@@ -55,6 +55,8 @@ test('the shared header opens the About page in place and the profile works in b
 
   if (info.project.name === 'mobile') {
     await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto('/about/');
+    await expect(page.locator('.site-header')).toHaveCSS('display', 'flex');
     const brandBox = await wordmark.boundingBox();
     const navBox = await nav.boundingBox();
     expect(brandBox!.x + brandBox!.width).toBeLessThan(navBox!.x);
