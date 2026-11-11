@@ -34,9 +34,11 @@ for(const [id,title,category,tags] of [['sample-variables','变量的生命周�
       '[公开参考](https://example.com/reference) [本站绝对地址](https://chengzhihuang.github.io/about/) [本页锚点](#原理) [邮件](mailto:reader@example.com)','',
       '<a href="//example.org/html" rel="nofollow">HTML 外链</a>','',
       '<table class="qos-table"><thead><tr><th scope="col">场景</th><th scope="col">队列 A</th><th scope="col">队列 B</th><th scope="col">队列 C</th></tr></thead><tbody><tr><th scope="row">场景一</th><td rowspan="2">共同结果</td><td colspan="2">横向合并</td></tr><tr><th scope="row">场景二</th><td>结果 B</td><td>结果 C</td></tr></tbody></table>','',
+      '## 延伸说明','',
+      ...Array.from({ length: 14 }, (_, idx) => `补充段落 ${idx + 1}：用于验证长文滚动与从附录返回正文时的原阅读位置恢复。`),
     ].join('\n');
     await fs.appendFile(file,examples);
-    await fs.writeFile(path.join(dir,'attachments/notes.md'),'\uFEFF# 中文技术附录\n\n## 段信息\n\n|段|变化|\n|---|---|\n|__TEXT|增长|\n\n```cpp\nint appendix = 42;\n```\n');
+    await fs.writeFile(path.join(dir,'attachments/notes.md'),'\uFEFF# 中文技术附录\n\n## 段信息\n\n|段|变化|\n|---|---|\n|__TEXT|增长|\n\n```cpp\nint appendix = 42;\n```\n\n## 符号归因\n\n附录补充说明。\n');
     await fs.writeFile(path.join(dir,'attachments/example.py'),'#!/usr/bin/env python3\n# 中文注释：保持原文件字节\nprint("<script>只显示文本</script>")\n');
     await fs.writeFile(path.join(dir,'attachments/large.c'),'/* 大源码完整保留 */\n'+'int value;\n'.repeat(28000));
   }

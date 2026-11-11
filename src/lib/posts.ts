@@ -1,12 +1,18 @@
 import { getCollection } from 'astro:content';
 import { attachmentHref, attachmentLanguage } from './attachments.mjs';
+import { estimateReadingMinutes, extractHeadingTexts } from './model';
 const codeFiles = import.meta.glob<string>('/src/content/posts/*/attachments/*.{py,c,h,cpp,m,mm,json,plist,txt,sh}', { query: '?raw', import: 'default', eager: true });
 export async function getPosts() {
   return (await getCollection('posts')).sort((a, b) => b.data.date.localeCompare(a.data.date) || a.data.permalink.localeCompare(b.data.permalink));
 }
 export function postHref(permalink: string) { return `/posts/${permalink}/`; }
 export async function getIndex() {
-  return (await getPosts()).map(({ data }) => ({ ...data, href: postHref(data.permalink) }));
+  return (await getPosts()).map(({ data, body }) => ({
+    ...data,
+    href: postHref(data.permalink),
+    readingMinutes: estimateReadingMinutes(body || ''),
+    headings: extractHeadingTexts(body || ''),
+  }));
 }
 export async function getAttachments() {
   const owners = new Map((await getPosts()).map(post => [post.data.permalink, post]));

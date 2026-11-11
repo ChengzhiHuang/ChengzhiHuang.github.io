@@ -423,7 +423,7 @@ static BOOL HCZStaticFunc(id _Nullable block) {
 
 因此我认为这里的问题在于不应该将这个函数定义为 static 函数，而是否 __inline__  __attribute__((always_inline)) 则都可以，看设计考虑即可。
 
-一些公开代码也有同样的问题，考虑后续添加一些静态检查治理增量的问题。[@Kyle-Ye](https://github.com/Kyle-Ye) 已对 swift-corelibs-foundation 上游提了 [issue](https://github.com/apple/swift-corelibs-foundation/issues/4904) 。
+不仅业务工程里容易踩坑，社区里一些开源代码其实也有同样的问题（工程内可以考虑加上静态检查治理增量问题）。比如 [@Kyle-Ye](https://github.com/Kyle-Ye) 就给 swift-corelibs-foundation 上游提了一个 [issue](https://github.com/apple/swift-corelibs-foundation/issues/4904) ：
 
 ![技术示意图 02](./images/figure-02.png)
 

@@ -21,7 +21,7 @@ author: "ChengzhiHuang"
 
 ## 问题出现
 
-一位同事 在线下发现如果从 main queue 中 `dispatch_async` 到 QoS 为 `QOS_CLASS_DEFAULT` 的  global queue 中，global queue 在执行 block 时，qos 会被提升为 `QOS_CLASS_USER_INITIATED` 。而 main queue 的优先级其实是 `QOS_CLASS_USER_INTERACTIVE` 。同时，再从 global queue 执行 `dispatch_async` 到 main queue 中，main queue 的 qos 是不会受到影响的。
+之前有同事在线下调试时发现：如果从 main queue 中 `dispatch_async` 到 QoS 为 `QOS_CLASS_DEFAULT` 的 global queue 中，global queue 在执行 block 时，qos 会被提升为 `QOS_CLASS_USER_INITIATED` 。而 main queue 的优先级其实是 `QOS_CLASS_USER_INTERACTIVE` 。同时，再从 global queue 执行 `dispatch_async` 到 main queue 中，main queue 的 qos 是不会受到影响的。
 
 
 因此一定是 GCD 有进行处理，因此我们需要研究一下 GCD 的相关实现。我们验证 QoS 的代码如下：
@@ -159,7 +159,7 @@ _dispatch_block_has_private_data(const dispatch_block_t block)
 }
 ```
 
-因此我们可以通过 \_dispatch\_block\_has\_private\_data 来判断（CrashMonitor 已经实现了一份 `dispatch_block_has_metadata`，可以直接用），某个 block 是否是通过 `dispatch_block_create_with_qos_class` 创建，如果是的话，我们可以认为这个业务方是很明确使用的目的的（本地测试时大部分都是系统的调用）。
+因此我们也可以在工程里仿照 `_dispatch_block_has_private_data` 自行封装一个辅助函数，用来判断某个 block 是否是通过 `dispatch_block_create_with_qos_class` 创建；如果是的话，我们可以认为这个业务方是很明确使用目的的（本地测试时大部分都是系统的调用）。
 
 
 #### dispatch\_block\_private\_data\_t
@@ -199,9 +199,7 @@ _dispatch_block_get_data(const dispatch_block_t db)
 }
 ```
 
-提供一个示意图对比一下：
-
-对正常 Block 结构感兴趣的同学可以跳转： 。
+对普通 Block 内存结构感兴趣的同学可以延伸阅读：[Block 内调用 super 引发的循环引用](/posts/block-super/)。
 
 
 同时我们还能知道，如果创建了一个 dispatch\_block ，但是不经过 dispatch\_async / dispatch\_sync 或者其他 API 进行分发，直接调用也是完全 OK 的。只不过 Block 的 impl 变成了 `_dispatch_block_invoke_direct` 而已，也会读取对应的 dispatch\_block\_private\_data\_t 中的参数进行处理。例如：
@@ -863,8 +861,8 @@ _dispatch_queue_override_invoke(dispatch_continuation_t dc,
 
     dou._do = dc->dc_data;
     old_dp = _dispatch_root_queue_identity_assume(assumed_rq); // 从 dc(block 创建的 context 里拿到 dc->dc_other -> dq_priority ，并设置
-    if (dc_type(dc) == DISPATCH_CONTINUATION_TYPE(OVERRIDE_S分析平台LING)) {
-        flags |= DISPATCH_INVOKE_S分析平台LING;
+    if (dc_type(dc) == DISPATCH_CONTINUATION_TYPE(OVERRIDE_STEALING)) {
+        flags |= DISPATCH_INVOKE_STEALING;
         dc_flags |= DC_FLAG_NO_INTROSPECTION;
     }
     _dispatch_continuation_pop_forwarded(dc, dc_flags, assumed_rq, {
@@ -1219,11 +1217,11 @@ _dispatch_lane_drain(dispatch_lane_t dq, dispatch_invoke_context_t dic,
 在此，我们可以给出 QoS Propagate 的含义：记录了执行 dispatch\_async 时 queue\(thread\) 的优先级，作为一个参考值传递下去。而并非一定会按照当前 queue\(thread\) 的优先级去执行后面的任务。
 
 
-同时源码的阅读验证了 global queue 与 自定义的  queue\(serial/cocurrent\) 都会存在堆积的情况。因此还是推荐大家默认使用 `DISPATCH_QUEUE_SERIAL_WITH_AUTORELEASE_POOL` / `DISPATCH_QUEUE_CONCURRENT_WITH_AUTORELEASE_POOL` 创建自定义队列；同时对于 dispatch 到 global queue 中的任务也使用 一位同事封装的 `dispatch_async_with_autoreleasepool` 。
+同时源码的阅读验证了 global queue 与 自定义的 queue\(serial/cocurrent\) 都会存在堆积的情况。因此还是推荐大家默认使用 `DISPATCH_QUEUE_SERIAL_WITH_AUTORELEASE_POOL` / `DISPATCH_QUEUE_CONCURRENT_WITH_AUTORELEASE_POOL` 创建自定义队列；同时对于 dispatch 到 global queue 中的任务，也可以参考我们团队同事的做法，封装一层自动包裹 `@autoreleasepool` 的 `dispatch_async` 辅助函数。
 
 ## INHERIT VS ENFORCE VS 直接创建
 
-讲了这么多，但其实绝大部分同学都用不到这么深入，大部分同学只需要确保最后执行 Block 时的 QoS 满足预期即可。因此最后我给出一些常见的组合的结果，给大家一个直观的。
+讲了这么多，但其实绝大部分同学都用不到这么深入，大部分同学只需要确保最后执行 Block 时的 QoS 满足预期即可。因此最后我给出一些常见的组合的结果，给大家一个直观的参考。
 
 
 需要注意，尽管有设置了希望执行的 QoS，但是并非一定会按照外部设置的来。例如，不论你给 main queue 设置多高/低的，都不会生效。
@@ -1280,9 +1278,7 @@ _dispatch_lane_drain(dispatch_lane_t dq, dispatch_invoke_context_t dic,
 可以看到尽管 Enforce 有设置，只要 dispatch 到 main  queue 里，执行时依旧保持最高 QoS ，这与我们前面的分析能够 match ；对于 High 的 gloabl queue ，也保持了较高的 QoS。
 
 
-一位同事在开启了线上实验后分析了 QoS 区别对于任务调度的影响，省流：高 QoS 对比 低 QoS 主要体现在调度耗时上。
-
-> 
+团队同事在开启线上实验后也分析了 QoS 区别对于任务调度的影响，省流：高 QoS 对比低 QoS 的差异主要体现在调度等待耗时上。
 
 
 ### 未指定 QoS 的自定义 Queue
@@ -1357,14 +1353,12 @@ dispatch_block_t __block direct_block_2 = ^{
 
 ## 一些目前在尝试的事
 
-易于以上的研究，一位同事已经在 示例 App A 做了一个尝试，在判断业务可能错误使用了高 QoS 时，降级为 Default 的 QoS，以避免对 CPU 资源的抢占；同时发现 NetworkLayer 的部分线程是 unspec ，可以进行设置。
+基于以上的研究，同事已经在我们工程里做了一个尝试：在判断业务可能错误使用了高 QoS 时，降级为 Default 的 QoS，以避免对 CPU 资源的抢占；同时还发现基础网络库的部分线程是 unspec ，也可以针对性地进行设置。
 
 
-同时我们也在线上收集了所有线程的 QoS 与 relative\_priority，在此期间我们也遇到了一些稳定性问题。由于 QoS 信息，在某个子线程对所有线程的 QoS 信息进行收集时，会遇到部分线程的内存地址已经不可读。因此我们使用 vm\_read\_overwrite 对这个问题进行了处理，经过线上验证，崩溃的问题已经解决，，示例代码如下。
+同时我们也在线上收集了所有线程的 QoS 与 relative\_priority，在此期间我们也遇到了一些稳定性问题。由于 QoS 信息，在某个子线程对所有线程的 QoS 信息进行收集时，会遇到部分线程的内存地址已经不可读。因此我们使用 `vm_read_overwrite` 对这个问题进行了处理，经过线上验证，崩溃的问题已经解决（关于 `vm_read_overwrite` 的使用边界可延伸阅读[另一篇排查记录](/posts/vm-read-overwrite/)），示例代码如下：
 
 ```cpp
-// 
-
 #import <sys/_pthread/_pthread_types.h> // to get __PTHREAD_SIZE__ and _opaque_pthread_t
 
 static bool read_memory(void *_Nonnull from, void *_Nonnull to, vm_size_t size) {

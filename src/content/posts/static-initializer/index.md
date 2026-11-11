@@ -14,12 +14,12 @@ author: "ChengzhiHuang"
 > min OS version to iOS 14 之后，`__mod_init_func` 消失（实际最小生效版本为 iOS 13\.4），static initializer 的顺序将不再遵守之前的输入顺序，需要警惕隐式依赖。
 >
 >
-> 对于仍在使用 DatabaseLibrary 较旧版本 且 使用 fts 相关功能的宿主建议提前修复消除对应隐患。
+> 对于仍在使用较旧版本 WCDB 分支、且开启了 FTS 全文检索相关功能的项目，建议提前排查修复以消除对应隐患。
 
 ## 问题出现
 
 
-业务同学反馈怀疑 WCDB 中两个不同 Compile Unit 中的 static initializer 顺序从 某次更新 版本起发生变动，导致业务表现错误。
+业务同学反馈，怀疑 WCDB 中两个不同 Compile Unit（编译单元）中的 static initializer 执行顺序在某次版本升级后发生了变动，导致线上检索表现异常。
 
 ```cpp
 // expr.cpp
@@ -30,7 +30,7 @@ StatementSelect StatementSelect::Fts3Tokenizer = StatementSelect().select(
     {Expr::Function("fts3_tokenizer", ExprList(2, WCDB::Expr::BindParameter))});
 ```
 
-业务表现上正确的顺序是先执行 `expr.cpp` 的初始化，再执行 `statement_select.cpp` 的初始化。旧版本 表现正确；而 新版本 初始化顺序错误，在对 `Fts3Tokenizer` 进行初始化时，`BindParameter` 为空，导致业务逻辑错误。
+业务表现上正确的顺序是先执行 `expr.cpp` 的初始化，再执行 `statement_select.cpp` 的初始化。升级前的旧版本一直表现正常；而升级后的新版本初始化顺序反转，在对 `Fts3Tokenizer` 进行初始化时，`BindParameter` 仍为空，导致业务逻辑错误。
 
 
 ## 排查细节
@@ -53,16 +53,16 @@ StatementSelect StatementSelect::Fts3Tokenizer = StatementSelect().select(
 
 命名为 `__GLOBAL_sub_I_xxx.cpp` 的函数就是对应 xxx\.cpp 文件中 static initilizer 的函数名字。`I` 意味着 `Initialization`，如果是析构函数的话，会是 `D` \(Destruction\)。
 
-因此可以看到顺序是正确的。似乎能排除 Linker 的问题了。但另一点奇怪的是，在 新版本的 Linkmap 中，我们无法找到 `__mod_init_func` 了，而 旧版本是能够找到的。
+因此可以看到顺序是正确的。似乎能排除 Linker 的问题了。但另一点奇怪的是，在新版本的 Linkmap 中，我们已经找不到 `__mod_init_func` 了，而旧版本是能够找到的。
 
 ![技术示意图 07](./images/figure-07.png)
 
 ![技术示意图 08](./images/figure-08.png)
 
-难道还有什么别的变量导致了 Linker 的行为变更？我们 CD 使用的 Linker 是 定制工具链 提供的基于 ld64 的修改版本，因此咨询一位同事是否了解更多的上下文。
+难道还有什么别的变量导致了 Linker 的行为变更？我们 CD 使用的 Linker 是内部工具链基于 ld64 维护的修改版本，于是先找工具链同学咨询背景。
 
 
-某次更新 同版本没有对应 WCDB 与依赖库的直接代码改动。唯一的大改动就在于将 min OS version 从 12 提升到了 14。得知在 min OS version 提升到 iOS 14 后，确实有 Linker 的行为变更（from 开源 ld64 的逻辑），将原本的 `__DATA, __mod_init_funcs` 更改为了 `__TEXT,__init_offsets` ，并开启了对应的优化。
+排查当期版本的变更记录后发现，并没有 WCDB 与相关依赖库的直接代码改动，唯一的大动作就是将工程的 min OS version 从 iOS 12 提升到了 iOS 14。进一步确认得知，在 min OS version 提升到 iOS 14 后，确实触发了 Linker 的行为变更（源自开源 ld64 的逻辑）：将原本的 `__DATA, __mod_init_funcs` 替换为了 `__TEXT,__init_offsets`，并开启了对应的优化。
 
 ![技术示意图 09](./images/figure-09.png)
 
@@ -166,14 +166,14 @@ protected:
 
 ## 处理方案
 
-由于原本 C\+\+ 的规范就不保证跨 CU 的执行顺序，在 旧版本 业务表现正确的行为只是巧合（Bazel 输入是默认根据字母序进行排序），后续无法保证问题不会再次出现，因此建议业务使用访问创建的方案（即目前业务的止损方式）进行修复。
+由于原本 C\+\+ 的规范就不保证跨 CU 的执行顺序，此前旧版本业务表现正常只是巧合（Bazel 输入默认按字母序排列），后续无法保证问题不会再次出现，因此建议业务改用按需访问创建的方案（即目前业务的止损方式）进行修复。
 
-> 在最新的主干 [WCDB](https://github.com/Tencent/wcdb) 中已没有类似问题，只是 示例 App A 的 WCDB 版本落后主干较多，因此这个问题才暴露。
+> 在上游最新的主干 [WCDB](https://github.com/Tencent/wcdb) 中其实已经没有类似问题了，只是工程里集成的 WCDB 版本落后上游主干较多（平时确实也没什么动力去升大版本），这次才把隐患暴露了出来。
 
 
 ~~同时，建议对所有工程中隐藏的 static initializer 方法进行摸排（由 Linkmap 扫描出），由业务确认是否存在对初始化顺序的隐式依赖，再进行治理。~~
 
-> 后续与 一位同事 讨论，曾经 Reliability 的同学尝试管控过，但是由于依赖链过长，经常出现某个相距非常远的头文件改动，最终影响到单个 CU ，因此除非能有工具快捷定位到生成的具体原因，否则极难消费。后续就关闭了这一项管控。
+> 后续和稳定性团队的同学讨论得知，曾经 Reliability 的同学也尝试做过准入管控，但是由于依赖链过长，经常出现某个相距非常远的头文件改动最终影响到单个 CU，因此除非有工具能快捷定位到生成的具体原因，否则极难消费，后续就关闭了这一项管控。
 
 > [find\_initializers\.py](./attachments/attachment-01.py)
 
@@ -182,14 +182,12 @@ protected:
 
 1. 为什么 CI / 渠道为 test 的包未出现此问题？
 
-因为用的 Linker 以及对应的优化都不一样（使用的 ld\-prime），确实建议同步打包配置，但会造成每次出包时间有所增加 。
-
-目前回归测试使用的包，已经将打包配置完全对齐 CD ，包括但不限于：Linker 的正确选择以及其优化项，Compiler 的正确选择以及其优化项。
+因为日常 CI / 测试包使用的 Linker 及优化项与正式发布包不同（测试包使用了 `ld-prime`）。虽然理想情况下应该同步打包配置，但全量对齐会让单次出包耗时接近翻倍；后续构建团队已推动在主力回归测试包中率先将打包配置完全对齐 CD，包括但不限于：Linker 的正确选择以及其优化项，Compiler 的正确选择以及其优化项。
 
 
 2. 为什么说是完全随机，但是表现大部分 TF/App Store 包都能出现？
 
-Static Initialier 的变动相对还是低频的，在 相邻版本之间 可能并未有新增的对应的关于 static initialier  的改动。
+Static Initializer 的变动本身相对低频，在问题暴露后的相邻几个版本之间，恰好没有新增足以打乱相关符号排序的改动。
 
 
 3. 既然已经是自定义 LD64 了，我们是否能自行兼容这个问题（模拟 iOS 12 的行为）？

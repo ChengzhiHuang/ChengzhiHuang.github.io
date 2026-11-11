@@ -89,7 +89,7 @@ void DebugWriteVMMap() {
 }
 ```
 
-当然如果想直接在 lldb 中进行直接调用某一个 C 函数需要前置进行声明，来自一位同事 的教导。
+顺带分享一个之前向同事请教来的小技巧：如果想直接在 lldb 中调用某一个 C 函数，需要前置加上 `extern` 声明：
 
 ```objective-c
 expr extern void DebugWriteVMMap(void); DebugWriteVMMap()
@@ -187,7 +187,7 @@ CrashMonitor 会在崩溃时上报寄存器的值，可以在崩溃信息中找�
 ![技术示意图 09](./images/figure-09.png)
 
 
-issue 1 ： 
+崩溃样本 1：
 
 <table class="vm-region-table">
 <thead>
@@ -205,7 +205,7 @@ issue 1 ：
 
 ![技术示意图 10](./images/figure-10.png)
 
-issue 2：
+崩溃样本 2：
 
 <table class="vm-region-table">
 <thead>
@@ -306,8 +306,6 @@ loc_6358:
 我们从 task\_threads 中获取到 mach\_thread ，再将 mach\_thread 转为 pthread ，再判断 pthread 状态后，通过 `pthread_get_qos_class_np` 调用获取 qos 信息。而在这期间，Thread 的状态可能已经不再置信，例如对应线程已经被释放。
 
 ```cpp
-// 
-
     // get threads in the task
     thread_array_t threadList;
     mach_msg_type_number_t threadCount;
@@ -438,7 +436,7 @@ auto Thread::currentThreadQOS() -> QOS
 
 ### 其他应用
 
-其实 CrashMonitor 中也存在大量对于 vm\_read\_overwrite 的使用，用来进行安全读取，用来预防访问了异常的地址。
+其实崩溃监控组件（`CrashMonitor`）在异步调用栈回溯、卡死死锁检测等场景中也大量使用了 `vm_read_overwrite`，用来预防回溯栈帧时访问到异常地址：
 
 ```objective-c
 /**
@@ -467,7 +465,7 @@ auto Thread::currentThreadQOS() -> QOS
 如果使用 vm\_read\_overwrite 去修改一段别的线程也能访问的内存，那么这个修改无法保证原子性，也就是别的线程可能会读取到中间状态。
 
 
-具体来说：SymbolRebinder 需要去修改 \_\_la\_symbol\_ptr 中对应原本函数的指向，将其更换为被替换的函数。我们会替换 8 个字节的区域。
+具体来说：内部基于 `fishhook` 维护的符号重绑定组件 `SymbolRebinder` 需要去修改 `__la_symbol_ptr` 中对应原本函数的指向，将其更换为被替换的函数。我们会替换 8 个字节的区域。
 
 ![技术示意图 18](./images/figure-18.png)
 
@@ -476,7 +474,7 @@ auto Thread::currentThreadQOS() -> QOS
 之所以 SymbolRebinder 会使用 vm\_read\_overwrite 去进行替换，是因为这个函数更安全，如果遇到了区域权限错误，则只会 hook 失败而不会出现崩溃。
 
 
-但这会遇到一个问题，你在进行替换的操作时，有可能会有别的线程正在读取这块地址的值，进行函数的跳转。而 一位同事发现，在通过 SymbolRebinder 替换 dispatch\_queue\_create 的实验组会出现一些零散的 Crash 。
+但这会遇到一个问题，你在进行替换的操作时，有可能会有别的线程正在读取这块地址的值，进行函数的跳转。而负责维护该组件的同事在实验中发现，通过 `SymbolRebinder` 替换 `dispatch_queue_create` 的实验组会出现一些零散的 Crash。
 
 > ![技术示意图 20](./images/figure-20.png)
 
@@ -678,7 +676,7 @@ _objc_restartableRanges:
 
 #### 解决问题了\.\.\.吗？
 
-但方案也只是缓解，没法彻底解决。曾经在一个 App 中抓到过 ASan 的 Case。
+但方案也只是缓解，没法彻底解决。曾经在一个 App 中抓到过 ASan 的 Case（注：下图中栈底业务帧已做脱敏遮挡，原调用栈入口为 `main`，说明缓存释放发生在主线程）。
 
 ![技术示意图 21](./images/figure-21.png)
 
@@ -686,18 +684,16 @@ _objc_restartableRanges:
 
 ![技术示意图 23](./images/figure-23.png)
 
-> 一位同事大概率是方法由于多线程执行，提前获取了 cache，但是没有在使用，另一边由于 方法交换 触发了 flushCache（只有 attachCategories、\_method\_setImplementation、method\_exchangeImplementations、addMethods\_finish、setSuperclass 会改变方法列表的情况会触发），而这部分会在没有正在进行的 objc\_MsgSend清空 garbage 里面的 cache，这里情况是虽然有引用 cache 但没在使用，所以就被释放了\.
+> 当时排查的同事分析：大概率是由于多线程执行时提前获取了 cache，但是还没有真正使用；另一边由于方法交换触发了 flushCache（只有 attachCategories、\_method\_setImplementation、method\_exchangeImplementations、addMethods\_finish、setSuperclass 会改变方法列表的情况会触发），而这部分会在没有正在进行的 objc\_MsgSend 时清空 garbage 里面的 cache，这里情况是虽然有引用 cache 但没在使用，所以就被释放了。
 
 > 判断是不是要回收看的是 collecting\_in\_critical （The collecting\_in\_critical function checks the PC of all threads and returns FALSE when all threads  are found to be outside objc\_msgSend\.）
 
 > 正常情况下是先不会回收 cache 的，等到了 garbage\_byte\_size 到阈值的时候才会回收，这里也是刚好撞上了
 
 
-同时与 一位同事交流得知，有专门为这个问题做一个定制 的修复，在遇到崩溃后，CrashMonitor 可以手动移动 PC 。
+同时和负责崩溃监控的同事交流得知，内部专门针对这个问题做过一个定制修复：在遇到崩溃后，`CrashMonitor` 可以手动移动 PC 跳过异常指令。
 
 ```c
-// 
-
 /*!@function @p RestartableRangesRegister
    @abstract 注册 mach restartable 处理范围，当发生崩溃时
    @code
@@ -744,7 +740,7 @@ CoreFoundation`objc_autoreleasePoolPop:
 而我们之前已经拿到了对应的 \_location 的地址，因此只需要遍历所有线程的 x16 寄存器，即可判断是否有正在调用的了。
 
 
-实例代码如下，在执行替换前，判断其他所有线程是否有 x16 寄存器的值是我们要替换的。。
+实例代码如下，在执行替换前，判断其他所有线程是否有 x16 寄存器的值是我们要替换的。
 
 ```c
 // first check 
@@ -915,7 +911,7 @@ void example_autoreleasePoolPop(void *token)
 ```
 
 
-PS1 ：由 一位同事提供的另一个角度的验证，通过 gcc 的 built\_in 函数 [`__atomic_store_n`](https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) 进行赋值，  生成的汇编完全一致。
+PS1：同事还从另一个角度补充了验证：通过 GCC 的 built-in 函数 [`__atomic_store_n`](https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) 进行赋值，生成的汇编完全一致。
 
 |[https://godbolt.org/z/aa5n3o1vj](https://godbolt.org/z/aa5n3o1vj)<br>|[https://godbolt.org/z/a1aPnYMKr](https://godbolt.org/z/a1aPnYMKr)|
 |---|---|
@@ -941,7 +937,7 @@ if (err == KERN_SUCCESS) {
 ```
 
 
-结合原子写入，最后一位同事 想到了一个合适的方案：
+结合原子写入的思路，最终一起排查的同事想到了一个兼顾安全与原子性的方案：
 
 > 作为替代，可以先用 vm\_read\_overwrite 写入一个这个位置储存的值，这样即使写入非原子性，也不会有问题；在 vm\_read\_overwrite 确认有权限读取后，再使用直接赋值原子性替换。
 
@@ -954,11 +950,9 @@ if (err == KERN_SUCCESS) {
 
 ### 上线效果
 
+修复方案合入 `SymbolRebinder` 主干分支并在 iOS 18 及以上系统放量实验后，此前分散在各个业务调用栈中的零散崩溃显著收敛，客户端整体崩溃水位也有明显下降。
 
-已回合 SymbolRebinder 主干分支。
-
-
-需要注意的是目前 示例 App A 在 \(, iOS 18\) 遇到了在对 FileProviderOverride 的 open 进行 fishhook 时的权限丢失，目前还在持续定位问题原因中。因此建议分 OS 进行实验。
+需要注意的是，在线上推进过程中我们发现在 \(, iOS 18\) 系统上对 `FileProviderOverride` 的 `open` 进行重绑定时会遇到权限丢失问题，目前还在持续定位原因中，因此实际落地时建议按系统版本分阶段灰度实验。
 
 
 ## 总结

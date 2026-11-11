@@ -25,10 +25,10 @@ author: "ChengzhiHuang"
 >
 > 3. 分析了系统 feature 开关的实现，列出了部分可供后续研究的系统库的开关。
 
-在实践中，我发现了一些奇怪的点，在 \(, iOS 15\) 上，释放堆积的 AutoreleasePoolPop 需要在系统的 \_runLoopObserverCallout 进行，因此我们对 pop 的控制需要在 \_runLoopObserverCallout 前进行；而在 \[iOS 15\.0, \) 后，任意优先级的 callout 后，都有系统触发的 AutoreleasePoolPop，疑似系统在每次 callout 前后都进行了 AutoreleasePool 的 Push/Pop 操作。那系统是不再将 runloop 的行为绑定 AutoreleasePool 了吗？
+在调研 AutoreleasePool 延迟释放方案时，我发现了一些奇怪的点：在 \(, iOS 15\) 上，释放堆积的 AutoreleasePoolPop 需要在系统的 \_runLoopObserverCallout 进行，因此我们对 pop 的控制需要在 \_runLoopObserverCallout 前进行；而在 \[iOS 15\.0, \) 后，任意优先级的 callout 后，都有系统触发的 AutoreleasePoolPop，疑似系统在每次 callout 前后都进行了 AutoreleasePool 的 Push/Pop 操作。那系统是不再将 runloop 的行为绑定 AutoreleasePool 了吗？
 
 
-同时，在调试时还发现 示例 App A 存在众多优先级相同的 Observer ，执行顺序又该如何？苹果的文档中并没有明确处理的顺序。因此希望对结果进行探究。
+同时，在调试时还发现工程里存在众多优先级相同的 Observer ，执行顺序又该如何？苹果的文档中并没有明确处理的顺序。因此希望对结果进行探究。
 
 
 > 文中大量的 disassemble 代码同时使用 ida64 与 hopper 生成两份，各位按喜好选取即可。~~个人喜欢 ida64 。~~ 
@@ -280,9 +280,9 @@ static void __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__(CFRunL
 
 #### 进一步思考
 
-但这其实还挺不稳定的，像 示例 App A 工程中，就存在复数个同样优先级的 `kCFRunLoopBeforeWaiting` 的  observer ，其中还涉及到了 卡死监听 的，可能会导致线上出现实际卡死的上报不准确 / Hitch 上报不准确等问题。
+但这其实还挺不稳定的，像实际大型工程中，往往存在复数个同样优先级的 `kCFRunLoopBeforeWaiting` 的 observer ，其中还涉及到了卡死监听的，可能会导致线上出现实际卡死的上报不准确 / Hitch 上报不准确等问题。
 
-因此需要讨论是否需要进行 runloop 的 observer 除了 order 为 0 外，不具有其他同样 order 的 observer 的管控。像 APM 的可以保持 `CFIndex.Max` ，FrameProfiler 是否需要调整为 `CFIndex.Max - 1` ？其他的呢？会导致我们监听的 “`当次 runloop 结束`” 并非真的结束，这是很危险的，除了品质的指标与真实情况相悖，还有卡死监控遗漏的风险。需要与 一位同事协商下后续的治理。
+因此需要讨论是否需要进行 runloop 的 observer 除了 order 为 0 外，不具有其他同样 order 的 observer 的管控。像 APM 的可以保持 `CFIndex.Max` ，FrameProfiler 是否需要调整为 `CFIndex.Max - 1` ？其他的呢？会导致我们监听的 “`当次 runloop 结束`” 并非真的结束，这是很危险的，除了品质的指标与真实情况相悖，还有卡死监控遗漏的风险，后续还需要和监控侧同学一起推进治理。
 
 ![技术示意图 02](./images/figure-02.png)
 
@@ -1879,7 +1879,7 @@ __int64 __fastcall _CFRunLoopSetPerCalloutAutoreleasepoolEnabled(int a1) // iOS 
 
 对于汇编的研究这里就不再赘述，感兴趣的同学自行研究即可。
 
-> UIKitCore iOS 16\.2
+> [UIKitCore iOS 16\.2](./attachments/attachment-04.bin)
 
 
 ### 小结
@@ -1961,7 +1961,7 @@ extern "C" bool _os_feature_enabled_impl(const char *domain, const char *feature
 
 ### SwiftUI 
 
-From 一位同事
+这里补充一段身边同事分享的发现：
 
 > ![技术示意图 32](./images/figure-32.png)
 
@@ -1985,7 +1985,7 @@ From 一位同事
 
     2. 对于通过 CreateWithHandler 系列 API 创建的 Observer，通过打印 context ，从而找到实际的执行的 Block 。
 
-    3. 发现 示例 App A 中存在的相同 Order 的 Observer 存在的风险，治理风险将后续独立展开。
+    3. 发现工程中存在的相同 Order 的 Observer 风险，治理方案将后续独立展开。
 
 3. 分析 \[iOS 15, \) 中的 AutoreleasePool 的 Push/Pop 时机，得到结论：系统在 callout 的前后，都有增加成对的 push/pop 。
 

@@ -740,33 +740,17 @@ const BOOL intializedGlobalConstant = YES;
 
 ## 引用
 
-
-
-3. https://stackoverflow.com/questions/5266260/how-is-the-stack-initialized
-
-4. https://unix.stackexchange.com/questions/509232/if-the-heap-is-zero-initialized-for-security-then-why-is-the-stack-merely-unin
-
-5. https://man7.org/linux/man-pages/man1/objdump.1.html
-
-6. http://web.mit.edu/rhel-doc/3/rhel-as-en-3/bss.html
-
-7. https://en.wikipedia.org/wiki/.bss#BSS_in_C
-
-8. https://stackoverflow.com/questions/8721475/if-a-global-variable-is-initialized-to-0-will-it-go-to-bss
-
-9. https://www.polarxiong.com/archives/C-C-%E4%B8%AD%E5%B7%B2%E5%88%9D%E5%A7%8B%E5%8C%96-%E6%9C%AA%E5%88%9D%E5%A7%8B%E5%8C%96%E5%85%A8%E5%B1%80-%E9%9D%99%E6%80%81-%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F-%E5%B8%B8%E9%87%8F%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE.html
-
-
-
-
-13. [Static storage union and named members initialization in C language](https://stackoverflow.com/questions/54307858/static-storage-union-and-named-members-initialization-in-c-language)
-
-14. https://en.wikipedia.org/wiki/Uninitialized_variable
-
-15. https://clang.llvm.org/docs/analyzer/checkers.html#core-uninitialized-assign
-
-
-17. https://releases.llvm.org/11.1.0/tools/clang/docs/AutomaticReferenceCounting.html
+1. https://stackoverflow.com/questions/5266260/how-is-the-stack-initialized
+2. https://unix.stackexchange.com/questions/509232/if-the-heap-is-zero-initialized-for-security-then-why-is-the-stack-merely-unin
+3. https://man7.org/linux/man-pages/man1/objdump.1.html
+4. http://web.mit.edu/rhel-doc/3/rhel-as-en-3/bss.html
+5. https://en.wikipedia.org/wiki/.bss#BSS_in_C
+6. https://stackoverflow.com/questions/8721475/if-a-global-variable-is-initialized-to-0-will-it-go-to-bss
+7. https://www.polarxiong.com/archives/C-C-%E4%B8%AD%E5%B7%B2%E5%88%9D%E5%A7%8B%E5%8C%96-%E6%9C%AA%E5%88%9D%E5%A7%8B%E5%8C%96%E5%85%A8%E5%B1%80-%E9%9D%99%E6%80%81-%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F-%E5%B8%B8%E9%87%8F%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE.html
+8. [Static storage union and named members initialization in C language](https://stackoverflow.com/questions/54307858/static-storage-union-and-named-members-initialization-in-c-language)
+9. https://en.wikipedia.org/wiki/Uninitialized_variable
+10. https://clang.llvm.org/docs/analyzer/checkers.html#core-uninitialized-assign
+11. https://releases.llvm.org/11.1.0/tools/clang/docs/AutomaticReferenceCounting.html
 
 
 

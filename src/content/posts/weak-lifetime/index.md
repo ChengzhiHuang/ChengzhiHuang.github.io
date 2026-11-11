@@ -13,7 +13,7 @@ author: "ChengzhiHuang"
 >
 > 1.  访问 weak 变量与读取 weak 变量的内存是两回事。区别见下图。
 > ![技术示意图 01](./images/figure-01.png)
-> 2. \>= iOS 16 苹果提供了指定类在特定线程释放的方法，可以做一个。
+> 2. \>= iOS 16 苹果提供了指定类在特定线程释放的方法，可以做一个参考。
 
 
 ## 问题提出
@@ -746,7 +746,7 @@ void *objc_destructInstance(id obj)
 
 ## 附录：_class_setCustomDeallocInitiation
 
-如果你调用了这个方法，可以实现类似：我这个类一定要在主线程里被释放 类似的问题。播放器场景中会遇到类似在 dealloc 里 dispatch 的危险操作（一定要在主线程中停止播放器），可以考虑用这个方案。
+如果你调用了这个方法，可以实现类似：我这个类一定要在主线程里被释放 类似的问题。之前做播放器相关业务时就遇到过类似在 dealloc 里 dispatch 的危险操作（一定要在主线程中停止播放器），可以考虑用这个方案。
 
 ```objc
 static inline void XXXRunOnMainThread(void (^block)(void)) {
@@ -846,7 +846,7 @@ _class_setCustomDeallocInitiation(_Nonnull Class cls);
 //  ViewController.m
 //  demo
 //
-//  示例代码。
+//  Created by ChengzhiHuang on 2022/11/29.
 //
 
 #import "ViewController.h"

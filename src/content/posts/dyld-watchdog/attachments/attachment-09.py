@@ -15,7 +15,7 @@
 #        python3 gen_fake_sel_asm.py 10000 FakeSelAsm 1.8 examplepad_
 #
 # 接入: 把输出目录下所有 .s 作为 srcs 加入【启动就加载的主框架】
-#       (AppCore/AppCore) 的编译目标; 不要放到 extension 或懒加载 dylib。
+#       (如 AppCore) 的编译目标; 不要放到 extension 或懒加载 dylib。
 #
 #   *** 关键 ***: 这些 .s 没有被任何代码引用。若它们被编进【静态库(.a)】(bazel 的
 #   objc_library/cc_library 默认就是), 链接器会因为"没有被引用的全局符号"而

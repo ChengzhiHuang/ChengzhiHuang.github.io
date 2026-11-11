@@ -5,97 +5,97 @@
       "permalink": "associated-object-thread-safety",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-03T04:17:19.177337+00:00",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "3f869aced403fb88891ebb48c5dbfdf1aa6751fce1c43cef3de3923086e93fba"
+      "sha256": "03a0d7c0da25ad77c23aefbd7f24581280650bfb16a83a002cd45318b8ef6c60"
     },
     {
       "permalink": "block-super",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "25823eb860a4cf42cc3e88c9e05692e023ba2d376deb7881d40a6ed35623e882"
+      "sha256": "4deeaece3a5212adae39ea0e3c697b8926e258c279fba2d6f6375f14bd51a114"
     },
     {
       "permalink": "dyld-watchdog",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "d9914464a89f8aa7ea3d78b925ebfd5860671ff7fdfb4f30d298123e9a327e3e"
+      "sha256": "27eb081bdb1f0fa2518ab0618364baee8daede4968e466e885ed3bfb28de6924"
     },
     {
       "permalink": "gcd-main-queue",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "af8ff97b78d663eb8c56a4a433f7a2b43a629d33bfee5398ebfa64a9195bb2a3"
+      "sha256": "70def5ec8ca755d713b7063c23c3a2233aaf65d2519c659d20a31542f7977460"
     },
     {
       "permalink": "gcd-qos",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-03T04:17:19.177337+00:00",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "c9e63390e5b65eec03bc0ecddda5137d4148453d2181b84ae3a88c8ba7d69f48"
+      "sha256": "e7391f083e52e05e60db1dbf39f26e6850e8c9dae6178216243921c917c27aa3"
     },
     {
       "permalink": "inline-static",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "eb639b34524226059ae282803e451cefd92dc5733a6dcb05fa095e8f698d52a6"
+      "sha256": "12dcd342306464833fd26d57e0496ea3ece07b2b1e38dd161984bb9e058701f4"
     },
     {
       "permalink": "objc-uninitialized-locals",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-03T04:17:19.177337+00:00",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "4e491391e1beaf4831e0aa1864ecc3f2cad6350a6f72437e8f59fcf40582bd08"
+      "sha256": "d662e1c20960b9dd88cb3c5612ae8fff3af3f8d2a9721449f6468281ff8531f8"
     },
     {
       "permalink": "runloop-autoreleasepool",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "00adedace9bc33d4953bebc3515cb0057e499b056bea61fca6a761cd88060f6e"
+      "sha256": "83b47542109d68ded4f796f7a55865e2d17162797162f14704b6b876e6a727bd"
     },
     {
       "permalink": "static-initializer",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "0a5aa2e8008ea7f8868f754b83a2194af64e68e60cefd0d6398c8fa5fdcc5f39"
+      "sha256": "15af664ce5abc063977dabc1edd3387bdbf9d1435c653ce0b7439b334001e4f5"
     },
     {
       "permalink": "swift-protocol",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "3d4b83ce5c87943ae331bddf004c9141e6bb92d8729b32be63d2376877e2922c"
+      "sha256": "644ddb9548508c23cef971d59fbc43cf3a87f3d879827ea7141b9ce03bf550c0"
     },
     {
       "permalink": "vm-read-overwrite",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "6706b25d53a07008098d09f684c37d09a45851c9f35f4c1268663f5ca666cc7f"
+      "sha256": "40722afaf6b3cfd7142cf9f0aaa00e5be1e4d4eef505b24fb6a0f318f314f637"
     },
     {
       "permalink": "weak-lifetime",
       "status": "approved",
       "reviewer": "ChengzhiHuang",
-      "reviewedAt": "2026-11-02T12:06:28.862Z",
+      "reviewedAt": "2026-11-11T07:02:54.047803+00:00",
       "imagesManuallyReviewed": true,
-      "sha256": "4c0c282872b7df3b9890233f26d3c26fdf3144b7a214e15645f01451418c86e4"
+      "sha256": "56cf1f186af2ea7bfec3a1f1ea908c951777322343c687b86b9c579a3efe804f"
     }
   ]
 }

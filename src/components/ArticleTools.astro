@@ -1,2 +1,26 @@
-<dialog id="image-viewer" aria-label="图片查看器"><button class="image-close" aria-label="关闭图片">关闭 ×</button><img alt="" /><p></p></dialog>
+<div class="reading-progress" data-reading-progress aria-hidden="true"></div>
+<div class="quick-actions" data-quick-actions hidden>
+  <button type="button" class="quick-btn" data-toc-open aria-expanded="false" hidden>目录</button>
+  <button type="button" class="quick-btn" data-scroll-top aria-label="回到顶部">↑ 顶部</button>
+</div>
+<div class="toc-sheet" data-toc-sheet hidden>
+  <div class="toc-sheet-backdrop" data-toc-close></div>
+  <div class="toc-sheet-panel" role="region" aria-label="章节目录">
+    <div class="toc-sheet-header">
+      <span>本文目录</span>
+      <button type="button" class="toc-sheet-close" data-toc-close aria-label="关闭目录">关闭 ×</button>
+    </div>
+    <ol class="toc-sheet-list" data-toc-sheet-list></ol>
+  </div>
+</div>
+<dialog id="image-viewer" aria-label="图片查看器">
+  <div class="image-viewer-bar">
+    <button type="button" class="image-zoom" data-image-zoom aria-pressed="false">1:1 原始尺寸</button>
+    <button type="button" class="image-close" aria-label="关闭图片">关闭 ×</button>
+  </div>
+  <div class="image-stage" data-image-stage>
+    <img alt="" />
+  </div>
+  <p data-image-caption hidden></p>
+</dialog>
 <script src="../scripts/article.ts"></script>

@@ -20,7 +20,7 @@ author: "ChengzhiHuang"
 
 ## 起因
 
-示例项目最近在做业务的 Model 治理，业务的 Model 总会有大量的属性是通过在 Category 中添加 AssocitedObject 来实现的。对于多个复杂场景同时使用的 Model 同步框架，就需要同时对性能与稳定性都有所考量。因此进行一些分析。
+最近项目里在做业务的 Model 治理，业务的 Model 总会有大量的属性是通过在 Category 中添加 AssocitedObject 来实现的。对于多个复杂场景同时使用的 Model 同步框架，就需要同时对性能与稳定性都有所考量。因此进行一些分析。
 
 
 
@@ -32,7 +32,7 @@ author: "ChengzhiHuang"
 
 ![技术示意图 figure-02](./images/figure-02.png)
 
-图来源于一位技术作者，图中勘误由另一位技术作者提供。
+配图引自文末参考资料《浅谈 Associated Objects》（感谢原作者绘制及同行修订）。
 
 
 

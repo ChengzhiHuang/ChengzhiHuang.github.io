@@ -38,7 +38,7 @@ FOUNDATION_EXTERN id _Nullable get_service_protocol(Protocol * _Nullable prot);
 
 我们就不解释为什么需要先 `as Any` （编译器认为一定成功），再 `as AnyObject` （编译器认为一定成功） ，再 `as? Protocol` （编译器认为有可能失败）了。
 
-一定要通过 `as Any` 先转一次，去掉范型绑定的类型信息，由一位同事 介绍是 Swift Compiler 的历史问题，同时我们测试了直到 Swift 6\.2 Release \(Xcode 26\.0\)，问题依旧存在。
+一定要通过 `as Any` 先转一次，去掉泛型绑定的类型信息——熟悉编译器的同事介绍这是 Swift Compiler 的历史遗留问题，同时我们也顺手测试了直到 Swift 6\.2 Release \(Xcode 26\.0\)，问题依旧存在。
 
 > https://stackoverflow.com/questions/51052531/workaround-to-bridge-a-generic-protocol-to-objective-c/51071722#51071722
 
@@ -51,7 +51,7 @@ FOUNDATION_EXTERN id _Nullable get_service_protocol(Protocol * _Nullable prot);
 
 ## 问题发现
 
-在线下录制 Trace 时，我们看到有大量一次性的由 ExperimentConfig 触发到 Service\.getServiceProtocol\<A\>\(\_:\) ，再触发了 `look_up_class` （OC Runtime 方法，内部有全局的 RuntimeLock ）。需要理解发生了什么，进而判断这次 `look_up_class` 的调用是否可以优化掉？
+在线下录制 Trace 时，我们看到实验配置模块（`ExperimentConfig`）在启动阶段密集触发了 `Service.getServiceProtocol<A>(_:)`，进而频繁落入 `look_up_class`（OC Runtime 方法，内部持有全局的 `runtimeLock`；下图上层业务栈帧已做脱敏遮挡，调用链底部集中落在 `look_up_class` 等锁上）。我们需要理解这里发生了什么，进而判断这次 `look_up_class` 的调用是否可以优化掉？
 
 ![技术示意图 03](./images/figure-03.png)
 
@@ -370,14 +370,13 @@ id get_service_protocol_typeerase(id prot) {
 但综合来说，结合类似操作都是处理类型体操，传递非法对象/类型的可能性非常低，再加上有开关兜底，在开启灰度实验没有 Assert 与崩溃上报后，判断风险可控。
 
 
-后续更新：一位同事帮助给 Swift Commity 提了一个询问，等待社区回复，再讨论是否需要在 swiftc 层面提供更彻底的解决方案
+后续更新：工具链方向的同事帮忙在 Swift 官方论坛发帖询问了这个问题，准备先看看社区回复，再讨论是否需要在 swiftc 层面提供更彻底的解决方案：
 
 > https://forums.swift.org/t/objc-lookupclass-protocol-emitted-for-every-use-of-protocol-metatype/86056
 
 
 ## 实验效果
 
-本次实验只优化了线下发现调用较为频繁的 getServiceProtocol 函数。
+本次实验只优化了线下 Trace 中发现调用最为频繁的 `getServiceProtocol` 函数。灰度放量后，客户端滑动丢帧率等流畅度（QoS）指标取得了明显改善，甚至还撬动了大盘停留时长的小幅正向体验收益。
 
-
-从 QoS 上看，对高端机提升最显著，这个符合预期，因为全局锁对性能的影响会随着性能提升而更加显著，原因是会有更多核心都在等锁。原本我认为只会有一些 较高分位的性能改善，最后能撬动整体体验收益也属于是超出预期了。
+从性能指标上看，对高端机的提升最为显著，这也符合预期：全局锁争用对性能的影响会随着设备多核性能提升而更加突出，因为同一时刻会有更多核心堵在等锁上。原本我认为这处改动最多只会有一些高分位的耗时改善，最后能撬动整体体验收益确实属于超出预期了。

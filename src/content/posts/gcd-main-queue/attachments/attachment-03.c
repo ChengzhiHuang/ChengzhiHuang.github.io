@@ -25056,7 +25056,7 @@ typedef struct dispatch_invoke_context_s {
 
 } dispatch_invoke_context_s, *dispatch_invoke_context_t;
 # 291 "/Volumes/Example/swift-corelibs-libdispatch/src/object_internal.h"
-enum { DISPATCH_INVOKE_NONE = 0x00000000, DISPATCH_INVOKE_S分析平台LING = 0x00000001, DISPATCH_INVOKE_WLH = 0x00000002, DISPATCH_INVOKE_ASYNC_REPLY = 0x00000004, DISPATCH_INVOKE_DISALLOW_SYNC_WAITERS = 0x00000008, DISPATCH_INVOKE_WORKER_DRAIN = 0x00010000, DISPATCH_INVOKE_REDIRECTING_DRAIN = 0x00020000, DISPATCH_INVOKE_MANAGER_DRAIN = 0x00040000, DISPATCH_INVOKE_THREAD_BOUND = 0x00080000, DISPATCH_INVOKE_WORKLOOP_DRAIN = 0x00100000, DISPATCH_INVOKE_AUTORELEASE_ALWAYS = 0x01000000, DISPATCH_INVOKE_AUTORELEASE_NEVER = 0x02000000, }; typedef uint32_t dispatch_invoke_flags_t;
+enum { DISPATCH_INVOKE_NONE = 0x00000000, DISPATCH_INVOKE_STEALING = 0x00000001, DISPATCH_INVOKE_WLH = 0x00000002, DISPATCH_INVOKE_ASYNC_REPLY = 0x00000004, DISPATCH_INVOKE_DISALLOW_SYNC_WAITERS = 0x00000008, DISPATCH_INVOKE_WORKER_DRAIN = 0x00010000, DISPATCH_INVOKE_REDIRECTING_DRAIN = 0x00020000, DISPATCH_INVOKE_MANAGER_DRAIN = 0x00040000, DISPATCH_INVOKE_THREAD_BOUND = 0x00080000, DISPATCH_INVOKE_WORKLOOP_DRAIN = 0x00100000, DISPATCH_INVOKE_AUTORELEASE_ALWAYS = 0x01000000, DISPATCH_INVOKE_AUTORELEASE_NEVER = 0x02000000, }; typedef uint32_t dispatch_invoke_flags_t;
 # 362 "/Volumes/Example/swift-corelibs-libdispatch/src/object_internal.h"
 enum { _DISPATCH_META_TYPE_MASK = 0x000000ff, _DISPATCH_TYPE_CLUSTER_MASK = 0x000000f0, _DISPATCH_SUB_TYPE_MASK = 0x0000ff00, _DISPATCH_TYPEFLAGS_MASK = 0x00ff0000, _DISPATCH_OBJECT_CLUSTER = 0x00000000, _DISPATCH_CONTINUATION_TYPE = 0x00000000, _DISPATCH_SEMAPHORE_TYPE = 0x00000001, _DISPATCH_NODE_TYPE = 0x00000002, _DISPATCH_IO_TYPE = 0x00000003, _DISPATCH_OPERATION_TYPE = 0x00000004, _DISPATCH_DISK_TYPE = 0x00000005, _DISPATCH_QUEUE_CLUSTER = 0x00000010, _DISPATCH_LANE_TYPE = 0x00000011, _DISPATCH_WORKLOOP_TYPE = 0x00000012, _DISPATCH_SOURCE_TYPE = 0x00000013, _DISPATCH_QUEUE_ROOT_TYPEFLAG = 0x00010000, _DISPATCH_QUEUE_BASE_TYPEFLAG = 0x00020000, _DISPATCH_NO_CONTEXT_TYPEFLAG = 0x00040000, DISPATCH_SEMAPHORE_TYPE = (_DISPATCH_SEMAPHORE_TYPE | (1) << 8), DISPATCH_GROUP_TYPE = (_DISPATCH_SEMAPHORE_TYPE | (2) << 8), DISPATCH_DATA_TYPE = (_DISPATCH_NODE_TYPE | (1) << 8), DISPATCH_MACH_MSG_TYPE = (_DISPATCH_NODE_TYPE | (2) << 8), DISPATCH_QUEUE_ATTR_TYPE = (_DISPATCH_NODE_TYPE | (3) << 8), DISPATCH_IO_TYPE = (_DISPATCH_IO_TYPE | (0) << 8), DISPATCH_OPERATION_TYPE = (_DISPATCH_OPERATION_TYPE | (0) << 8), DISPATCH_DISK_TYPE = (_DISPATCH_DISK_TYPE | (0) << 8), DISPATCH_QUEUE_SERIAL_TYPE = (_DISPATCH_LANE_TYPE | (1) << 8), DISPATCH_QUEUE_CONCURRENT_TYPE = (_DISPATCH_LANE_TYPE | (2) << 8), DISPATCH_QUEUE_GLOBAL_ROOT_TYPE = (_DISPATCH_LANE_TYPE | (3) << 8) | _DISPATCH_QUEUE_ROOT_TYPEFLAG | _DISPATCH_NO_CONTEXT_TYPEFLAG, DISPATCH_QUEUE_PTHREAD_ROOT_TYPE = (_DISPATCH_LANE_TYPE | (4) << 8) | _DISPATCH_QUEUE_ROOT_TYPEFLAG | _DISPATCH_NO_CONTEXT_TYPEFLAG, DISPATCH_QUEUE_MGR_TYPE = (_DISPATCH_LANE_TYPE | (5) << 8) | _DISPATCH_QUEUE_BASE_TYPEFLAG | _DISPATCH_NO_CONTEXT_TYPEFLAG, DISPATCH_QUEUE_MAIN_TYPE = (_DISPATCH_LANE_TYPE | (6) << 8) | _DISPATCH_QUEUE_BASE_TYPEFLAG | _DISPATCH_NO_CONTEXT_TYPEFLAG, DISPATCH_QUEUE_RUNLOOP_TYPE = (_DISPATCH_LANE_TYPE | (7) << 8) | _DISPATCH_QUEUE_BASE_TYPEFLAG | _DISPATCH_NO_CONTEXT_TYPEFLAG, DISPATCH_QUEUE_NETWORK_EVENT_TYPE = (_DISPATCH_LANE_TYPE | (8) << 8) | _DISPATCH_QUEUE_BASE_TYPEFLAG, DISPATCH_WORKLOOP_TYPE = (_DISPATCH_WORKLOOP_TYPE | (0) << 8) | _DISPATCH_QUEUE_BASE_TYPEFLAG, DISPATCH_SOURCE_KEVENT_TYPE = (_DISPATCH_SOURCE_TYPE | (1) << 8), DISPATCH_MACH_CHANNEL_TYPE = (_DISPATCH_SOURCE_TYPE | (2) << 8), }; typedef unsigned long dispatch_object_flags_t;
 # 425 "/Volumes/Example/swift-corelibs-libdispatch/src/object_internal.h"
@@ -26430,8 +26430,8 @@ enum {
  DC_MACH_RECV_BARRIER_TYPE,
  DC_MACH_ASYNC_REPLY_TYPE,
 
- DC_WORKLOOP_S分析平台LING_TYPE,
- DC_OVERRIDE_S分析平台LING_TYPE,
+ DC_WORKLOOP_STEALING_TYPE,
+ DC_OVERRIDE_STEALING_TYPE,
  DC_OVERRIDE_OWNING_TYPE,
 
 
@@ -28459,7 +28459,7 @@ _dispatch_queue_drain_try_lock(dispatch_queue_t dq,
 
  lock_fail_mask |= ((uint64_t)((dispatch_lock)0xfffffffc));
 
- if (flags & DISPATCH_INVOKE_S分析平台LING) {
+ if (flags & DISPATCH_INVOKE_STEALING) {
   lock_fail_mask |= 0x0000004000000000ull;
   dequeue_mask = 0;
  } else if (flags & DISPATCH_INVOKE_MANAGER_DRAIN) {
@@ -28790,10 +28790,10 @@ _dispatch_queue_class_invoke(dispatch_queue_class_t dqu,
 {
  dispatch_queue_t dq = dqu._dq;
  dispatch_queue_wakeup_target_t tq = ((dispatch_queue_wakeup_target_t)0);
- _Bool owning = !(flags & DISPATCH_INVOKE_S分析平台LING);
+ _Bool owning = !(flags & DISPATCH_INVOKE_STEALING);
  uint64_t owned = 0;
 # 1791 "/Volumes/Example/swift-corelibs-libdispatch/src/inline_internal.h"
- if (!(flags & (DISPATCH_INVOKE_S分析平台LING | DISPATCH_INVOKE_WLH))) {
+ if (!(flags & (DISPATCH_INVOKE_STEALING | DISPATCH_INVOKE_WLH))) {
   dq->do_next = ((void *)0xffffffff89abcdef);
   do { (void)(_dispatch_queue_get_current()); (void)(dq); } while(0);
  }
@@ -31271,9 +31271,9 @@ const struct dispatch_continuation_vtable_s _dispatch_continuation_vtables[] = {
 
 
 
- [DC_WORKLOOP_S分析平台LING_TYPE] = { .do_type = (_DISPATCH_CONTINUATION_TYPE | (DC_WORKLOOP_S分析平台LING_TYPE) << 8), .do_invoke = _dispatch_workloop_stealer_invoke },
+ [DC_WORKLOOP_STEALING_TYPE] = { .do_type = (_DISPATCH_CONTINUATION_TYPE | (DC_WORKLOOP_STEALING_TYPE) << 8), .do_invoke = _dispatch_workloop_stealer_invoke },
 
- [DC_OVERRIDE_S分析平台LING_TYPE] = { .do_type = (_DISPATCH_CONTINUATION_TYPE | (DC_OVERRIDE_S分析平台LING_TYPE) << 8), .do_invoke = _dispatch_queue_override_invoke },
+ [DC_OVERRIDE_STEALING_TYPE] = { .do_type = (_DISPATCH_CONTINUATION_TYPE | (DC_OVERRIDE_STEALING_TYPE) << 8), .do_invoke = _dispatch_queue_override_invoke },
 
  [DC_OVERRIDE_OWNING_TYPE] = { .do_type = (_DISPATCH_CONTINUATION_TYPE | (DC_OVERRIDE_OWNING_TYPE) << 8), .do_invoke = _dispatch_queue_override_invoke },
 
@@ -34923,7 +34923,7 @@ _dispatch_workloop_stealer_invoke(dispatch_continuation_t dc,
   dispatch_invoke_context_t dic, dispatch_invoke_flags_t flags)
 {
  uintptr_t dc_flags = 0x004ul | 0x200ul;
- ({ dispatch_continuation_t _dc = (dc), _dc1; uintptr_t _dc_flags = (dc_flags); _dispatch_continuation_voucher_adopt(_dc, _dc_flags); if (!(_dc_flags & 0x200ul)) { do { (void)(((void *)0)); (void)(dc); } while(0); } if (_dc_flags & 0x004ul) { _dc1 = _dispatch_continuation_free_cacheonly(_dc); } else { _dc1 = ((void *)0); } { dispatch_queue_t dq = dc->dc_data; (&(dq)->do_vtable->_os_obj_vtable)->do_invoke(dq, dic, flags | DISPATCH_INVOKE_S分析平台LING); }; if (!(_dc_flags & 0x200ul)) { ((void)0); } if (__builtin_expect(!!(_dc1), 0)) { _dispatch_continuation_free_to_heap(_dc1); } });
+ ({ dispatch_continuation_t _dc = (dc), _dc1; uintptr_t _dc_flags = (dc_flags); _dispatch_continuation_voucher_adopt(_dc, _dc_flags); if (!(_dc_flags & 0x200ul)) { do { (void)(((void *)0)); (void)(dc); } while(0); } if (_dc_flags & 0x004ul) { _dc1 = _dispatch_continuation_free_cacheonly(_dc); } else { _dc1 = ((void *)0); } { dispatch_queue_t dq = dc->dc_data; (&(dq)->do_vtable->_os_obj_vtable)->do_invoke(dq, dic, flags | DISPATCH_INVOKE_STEALING); }; if (!(_dc_flags & 0x200ul)) { ((void)0); } if (__builtin_expect(!!(_dc1), 0)) { _dispatch_continuation_free_to_heap(_dc1); } });
 
 
 
@@ -34936,7 +34936,7 @@ _dispatch_workloop_push_stealer(dispatch_workloop_t dwl, dispatch_queue_t dq,
 {
  dispatch_continuation_t dc = _dispatch_continuation_alloc();
 
- dc->do_vtable = (&_dispatch_continuation_vtables[DC_WORKLOOP_S分析平台LING_TYPE]);
+ dc->do_vtable = (&_dispatch_continuation_vtables[DC_WORKLOOP_STEALING_TYPE]);
  _dispatch_retain_2(dq);
  dc->dc_func = ((void *)0);
  dc->dc_ctxt = dc;
@@ -35069,8 +35069,8 @@ _dispatch_queue_override_invoke(dispatch_continuation_t dc,
 
  dou._do = dc->dc_data;
  old_dp = _dispatch_root_queue_identity_assume(assumed_rq);
- if (dc_type(dc) == (_DISPATCH_CONTINUATION_TYPE | (DC_OVERRIDE_S分析平台LING_TYPE) << 8)) {
-  flags |= DISPATCH_INVOKE_S分析平台LING;
+ if (dc_type(dc) == (_DISPATCH_CONTINUATION_TYPE | (DC_OVERRIDE_STEALING_TYPE) << 8)) {
+  flags |= DISPATCH_INVOKE_STEALING;
   dc_flags |= 0x200ul;
  }
  ({ dispatch_continuation_t _dc = (dc), _dc1; uintptr_t _dc_flags = (dc_flags); _dispatch_continuation_voucher_adopt(_dc, _dc_flags); if (!(_dc_flags & 0x200ul)) { do { (void)(assumed_rq); (void)(dc); } while(0); } if (_dc_flags & 0x004ul) { _dc1 = _dispatch_continuation_free_cacheonly(_dc); } else { _dc1 = ((void *)0); } { if (_dispatch_object_has_vtable(dou._do)) { (&(dou._dq)->do_vtable->_os_obj_vtable)->do_invoke(dou._dq, dic, flags); } else { _dispatch_continuation_invoke_inline(dou, flags, assumed_rq); } }; if (!(_dc_flags & 0x200ul)) { ((void)0); } if (__builtin_expect(!!(_dc1), 0)) { _dispatch_continuation_free_to_heap(_dc1); } });
@@ -35132,7 +35132,7 @@ _dispatch_root_queue_push_override_stealer(dispatch_queue_global_t orig_rq,
  dispatch_queue_global_t rq = _dispatch_get_root_queue(qos, overcommit);
  dispatch_continuation_t dc = _dispatch_continuation_alloc();
 
- dc->do_vtable = (&_dispatch_continuation_vtables[DC_OVERRIDE_S分析平台LING_TYPE]);
+ dc->do_vtable = (&_dispatch_continuation_vtables[DC_OVERRIDE_STEALING_TYPE]);
  _dispatch_retain_2(dq);
  dc->dc_func = ((void *)0);
  dc->dc_ctxt = dc;

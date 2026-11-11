@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { assertArticles, assertArchitecture, assertReview, articleHash, sensitiveText, assertArtifacts, assertAssetBytes } from '../scripts/guards.mjs';
 import { zipSync, strToU8 } from 'fflate';
-import { matchesPost } from '../src/lib/model.ts';
+import { matchesPost, extractHeadingTexts, estimateReadingMinutes } from '../src/lib/model.ts';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import { load } from 'cheerio';
 import { remarkTldr, annotatedCode, rehypeExternalLinks } from '../scripts/markdown.mjs';
@@ -18,9 +18,14 @@ import { sourceDigest } from '../scripts/guards.mjs';
 
 const fixture = (id='sample') => `---\ntitle: "测试文章"\ndescription: "用于检验内容约束的合成文章。"\ndate: "2024-01-02"\ndateBasis: published\ncategory: "编译与链接"\ntags: ["编译", "LLVM"]\npermalink: ${id}\nauthor: ChengzhiHuang\n---\n## 示例\n\n正文。\n`;
 async function temp(t) {const root=await fs.mkdtemp(path.join(os.tmpdir(),'blog-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));await fs.mkdir(path.join(root,'src/content/posts/sample'),{recursive:true});await fs.writeFile(path.join(root,'src/content/posts/sample/index.md'),fixture());await fs.writeFile(path.join(root,'package.json'),JSON.stringify({scripts:{},dependencies:{}}));return root;}
-test('search supports Chinese, case folding, full-width and multiple terms',()=>{
- const post={title:'LLVM 编译与链接',tags:['Objective-C','编译'],category:'编译与链接'};
- assert.equal(matchesPost(post,'ＬＬＶＭ 编译'),true);assert.equal(matchesPost(post,'objective-c'),true);assert.equal(matchesPost(post,'不存在'),false);assert.equal(matchesPost(post,'','并发与调度'),false);
+test('search supports Chinese, case folding, full-width, descriptions, headings and multiple terms',()=>{
+ const post={title:'LLVM 编译与链接',description:'从 Linkmap 到排序逻辑逐步排查。',tags:['Objective-C','编译'],headings:['look_up_class 为什么要减少调用？','实验效果'],category:'编译与链接'};
+ assert.equal(matchesPost(post,'ＬＬＶＭ 编译'),true);assert.equal(matchesPost(post,'objective-c'),true);assert.equal(matchesPost(post,'linkmap'),true);assert.equal(matchesPost(post,'look_up_class'),true);assert.equal(matchesPost(post,'不存在'),false);assert.equal(matchesPost(post,'','并发与调度'),false);
+});
+test('heading extraction and reading-time estimation ignore fenced code comments',()=>{
+ const md='## 关于 \\_os\\_feature\\_enabled\n\n正文内容用于估算阅读耗时。\n\n```bash\n# fake heading inside code\necho ok\n```\n\n### [链接标题](https://example.com) `Code`\n';
+ assert.deepEqual(extractHeadingTexts(md),['关于 _os_feature_enabled','链接标题 Code']);
+ assert.ok(estimateReadingMinutes(md)>=1);
 });
 test('valid article passes',async t=>{assert.equal((await assertArticles(await temp(t))).length,1);});
 test('duplicate permalink fails',async t=>{const root=await temp(t);await fs.mkdir(path.join(root,'src/content/posts/other'));await fs.writeFile(path.join(root,'src/content/posts/other/index.md'),fixture());await assert.rejects(()=>assertArticles(root),/Duplicate|directory/);});

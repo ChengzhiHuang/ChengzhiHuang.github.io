@@ -11,7 +11,7 @@ author: "ChengzhiHuang"
 
 > [!TLDR]
 >
-> 1. 记录了一次疑难杂症的分析，走了不少弯路，排查疑似系统行为\(dyld\)的 bug 时，还是需要通过有问题的 OS 进行 Trace 分析，避免不同 OS 行为导致的错误排查方向。最后由一位同事提供了通用的解决方案。
+> 1. 记录了一次疑难杂症的分析，走了不少弯路，排查疑似系统行为\(dyld\)的 bug 时，还是需要通过有问题的 OS 进行 Trace 分析，避免不同 OS 行为导致的错误排查方向。最后由工具链方向的同事提供了通用的解决方案。
 >
 > 2. 新安装/更新 App 时的首次打开线上监测较少，尤其本次 Case 还未走到任何业务代码故而从 App 自监控角度极难发现，最后还是依赖苹果的跨进程监控确定影响范围。对于这类情况我们将补齐线下的持续性能防劣化。对于用户体验来说，任意情况的 App 打开失败都是完全不可接受的。
 >
@@ -19,7 +19,7 @@ author: "ChengzhiHuang"
 
 ## 背景
 
-某次版本更新后，示例 App A iOS 站外 **打不开App** 类反馈激增 ，一段时间后量级有所回落，但整体量级  仍高于正常水平。
+某次版本更新后，我们负责的一款大型 iOS 应用（下文简称 App A）站外 **打不开 App** 类反馈突然激增；几天后量级虽有所回落，但整体仍高于往常水位。
 
 
 通过分析站外反馈评论内容，比较明显的聚合特征为：
@@ -35,7 +35,7 @@ author: "ChengzhiHuang"
 
 ## 初步排查
 
-因为站外反馈除了App Store评论内容拿不到任何其他信息，所以一位同事只能通过旁路手段尝试锁定根因：
+因为站外反馈除了 App Store 评论内容拿不到任何其他信息，所以负责监控排查的同学只能通过旁路手段尝试锁定根因：
 
 1. \( 正常崩溃/卡死的情况 \) 从Monitor后台查看 启动阶段/非启动阶段 \+ 特定机型/特定区域 \+ 崩溃/卡死/OOM/MetricKit 数据 是否有上涨
 
@@ -46,14 +46,14 @@ author: "ChengzhiHuang"
 4. QA 使用 特定机型 \+ 特定版本 尝试复现
 
 
-通过各种数据平台分析后，均无明显异常；最后在 QA 通过一台 iPhone 6s 的设备 安装 示例 App A 某个版本 AppStore 包后 复现：首次启动时 直接卡死，第二次启动正常。
+通过各种数据平台分析后，均无明显异常；最后 QA 通过一台 iPhone 6s 设备安装 App A 当期版本的 App Store 包后成功复现：首次启动时直接卡死，第二次启动恢复正常。
 
 
-通过导出该设备 Apple ips 分析：[启动堆栈 01（脱敏诊断摘录）](./attachments/attachment-01.json)[启动堆栈 02（脱敏诊断摘录）](./attachments/attachment-02.json)。
+通过导出该设备 Apple ips 分析：[启动堆栈 01（脱敏诊断摘录）](./attachments/attachment-01.json)、[启动堆栈 02（脱敏诊断摘录）](./attachments/attachment-02.json)。
 
 ```text
 Termination Reason: FRONTBOARD 2343432205 
-<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:process-launch watchdog transgression: application<com.example.comparison>:652 exhausted real (wall clock) time allowance of 20.00 seconds
+<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:process-launch watchdog transgression: application<com.example.appa>:652 exhausted real (wall clock) time allowance of 20.00 seconds
 
 WatchdogCPUStatistics: (
 "Elapsed total CPU time (seconds): 24.920 (user 24.920, system 0.000), 60% CPU",
@@ -112,14 +112,14 @@ Thread 0 Crashed:
 4. 崩溃时堆栈正在 dyld 启动闭包
 
 
-因此两位同事初步判断是 VM 内存不够，叠加新安装包首次启动时，所有 TEXT/DATA Page 全都是 Cold Page ，需要大量 Page In 和 Page Purge，导致频繁出现 IO 交换，导致低端机超过了 20s 的阈值。而且其中，最主要的因素应该就是 AppCore 太大了（当时已经到了较大的体积）。
+因此我们初步判断是 VM 内存不够，叠加新安装包首次启动时，所有 TEXT/DATA Page 全都是 Cold Page ，需要大量 Page In 和 Page Purge，导致频繁出现 IO 交换，最终在低端机上超过了 20s 的阈值。而且其中最主要的因素应该就是主二进制 `AppCore` 体积过大（已达数百 MB 量级）。
 
-但这又遇到一个无法解释的问题是，示例 App B的  ComparisonAppCore 已经到达了 更大的体积 ，但是经过测试，示例 App B并未出现同样的现象。也就是仅仅以二进制过大不足以解释问题。还有更直接的原因。
+但这又遇到一个无法解释的问题：另一款同架构应用（下文简称 App B）的主二进制 `ComparisonAppCore` 体积比 `AppCore` 还要大上不少，但经过实测，App B 并未出现同样的现象。也就是说，仅靠“二进制过大”不足以解释问题，背后还有更直接的原因。
 
 
 ## Dyld 的一些前置知识
 
-dyld closure 构建一般发生在 App 更新后。在构建完成后，后续的启动是直接使用构建完成的 closure 进行启动，因此体感就会变快很多。
+dyld closure 构建一般发生在 App 安装/更新后，以及设备重启后的第一次打开。在构建完成后，后续的启动是直接使用构建完成的 closure 进行启动，因此体感就会变快很多。
 
 而我们一般测试的冷启动数据指的就是在 closure 完成构建之后的数据。有一个很简单的判断本次启动是否使用了 closure 的方式就是看 dyld 的堆栈。
 
@@ -138,35 +138,35 @@ Fixup 分两种，主要看是哪个方法的 applyFixups 就行。
 
 ## 详细排查开始
 
-由于示例 App B能够正常启动，因此怀疑是否是 示例 App A 在启动时有特别的耗时逻辑。
+由于 App B 能够正常启动，因此怀疑是否是 App A 在启动时有特别的耗时逻辑。
 
 
 ### 直观对比启动性能
 
-使用手边的一台 iPhone 13 Pro Max\(iOS 18\) 进行测试。可以看到不论是首次启动还是第二次启动，示例 App A 的耗时数据与 PageIn 数据都优于示例 App B。难以从性能的角度解释为什么只有 示例 App A 会有这个问题。
+使用手边的一台 iPhone 13 Pro Max\(iOS 18\) 进行测试。可以看到不论是首次启动还是第二次启动，App A 的耗时数据与 PageIn 数据都优于 App B。难以从性能的角度解释为什么只有 App A 会有这个问题。
 
-|示例 App B|首次启动 Build|第二次启动 （已经 build 完成）|
+|App B|首次启动 Build|第二次启动 （已经 build 完成）|
 |---|---|---|
 |dyld|![技术示意图 04](./images/figure-04.png)<br>Dyld 有 build closure 。<br>![技术示意图 05](./images/figure-05.png)<br>|![技术示意图 06](./images/figure-06.png)<br>已经完成 closure 。<br>![技术示意图 07](./images/figure-07.png)<br>|
-|总 Page 次数|较高|较低|
+|总 Page 次数|明显偏高（显著高于 App A）|回落（仍高于 App A）|
 
 
-|示例 App A|首次启动 Build|第二次启动 build 已完成|
+|App A|首次启动 Build|第二次启动 build 已完成|
 |---|---|---|
-|<br>|![技术示意图 08](./images/figure-08.png)<br>![技术示意图 09](./images/figure-09.png)<br>|![技术示意图 10](./images/figure-10.png)<br>![技术示意图 11](./images/figure-11.png)<br>|
-|总 Page 次数|较高|较低|
+|dyld|![技术示意图 08](./images/figure-08.png)<br>![技术示意图 09](./images/figure-09.png)<br>|![技术示意图 10](./images/figure-10.png)<br>![技术示意图 11](./images/figure-11.png)<br>|
+|总 Page 次数|低于 App B（约为其七成）|进一步回落（低于 App B）|
 
 
 无奈之下只得进行类似二分的排除探索。
 
 ### 是否跟 chained fixup / relative method 有关系？
 
-示例 App B未开，示例 App A 开了。
+App B 未开，App A 开了。
 
-> 一位同事提示：示例 App B的method list都是常驻内存的
+> 工具链方向的同事提示：App B 的 method list 都是常驻内存的
 
 
-把 示例 App A 的也降回去。
+把 App A 的也降回去。
 
 直接降 min OS 无法走通，会有 Compile Error 😭。
 
@@ -212,22 +212,21 @@ Fixup 分两种，主要看是哪个方法的 applyFixups 就行。
 
 ### 线上包二分排查范围
 
-较早版本：无问题
-
-某次更新后的版本：有问题
-
-
-因此问题出现在 相邻两个版本之间，对比 示例 App B 包，唯一较大的是 swift metadata 。但这应该也不足以出现这么大的变化。
+- 版本 `0.x-2`、`0.x-1`、`0.x`：无问题
+- 版本 `0.x+1`、`0.x+2`：复现卡死
 
 
-因此可以看到线上从 较早的版本即有此问题，但是线上反馈激增是从后续版本开始。一位同事 补充线上反馈之所以 后续版本激增可能原因是 后续版本的发布节奏不同，因此反馈激增。
+因此问题明确引入自 `(0.x, 0.x+1]` 之间。对比 App B 的安装包，唯一明显更大的是 Swift metadata，但这一项差异按理也不足以引发如此剧烈的劣化。
+
+
+这也解释了时间线上的疑惑：线上其实从 `0.x+1` 版本起就已经存在该问题，但用户反馈直到后续的 `0.x+3` 版本才集中激增——负责监控排查的同学补充，这是因为 `0.x+3` 采用了直接全量的发布节奏，把长尾低端机的问题一下子放大了出来。
 
 
 [段与节的差异分析（脱敏过程记录）](./attachments/attachment-08.md)
 
 ### 更换 iOS 15 设备重新录制 Trace
 
-无奈之下，请教了 一位同事，给出了关键的线索：dyld 在老 OS 的实现有缺陷，iOS 18 修复了对应的问题，因此老 OS 的表现可能不同，不能使用 iOS 18 的表现推测老 OS 的表现。
+无奈之下，再次请教了工具链方向的这位同事，拿到了非常关键的线索：dyld 在老 OS 的实现有缺陷，iOS 18 已经修复了对应问题，因此老 OS 的表现截然不同，不能拿 iOS 18 的 Trace 去推测老 OS 的行为。
 
 > TL;DR: The slowness was Bob Jenkins' 1996 trial\-and\-error perfect\.c generator running single\-threaded at closure\-build time — up to 2048 full re\-hashes of every selector string per table\-size attempt, **with a near\-100% load factor and a deliberately crippled augmenting\-path search causing whole\-table restarts**\. **It's gone as of dyld\-1231\.3 \(iOS 18\.0 / macOS 15\.0\)**, which dropped perfect hashing from the launch path entirely in favor of a serialized ordinary hash map\.
 
@@ -240,7 +239,7 @@ Fixup 分两种，主要看是哪个方法的 applyFixups 就行。
 > So: compute n offline \(unique \_\_objc\_methname strings across launch images, minus the target OS shared cache's selector set — dumpable with dyld\_shared\_cache\_util or ipsw dyld objc\)\. If n sits within a few percent below a 2^k boundary, add dummy unique selectors to cross it — a padding category with generated method names is enough\. That pre\-doubles smax, skipping the thrash phase entirely\. Conversely, if a selector\-stripping pass would land you just below a boundary, don't stop there\. Same logic applies \(with smaller stakes\) to the class\-name table\.
 
 
-> credit: 辅助分析工具
+> credit: AI 辅助分析
 
 
 重新找到合适的设备录制 Trace 。
@@ -249,7 +248,7 @@ Fixup 分两种，主要看是哪个方法的 applyFixups 就行。
 
 ![技术示意图 18](./images/figure-18.png)
 
-明确耗时是 Build Closure 阶段。已经非常极限接近 20s 的界限了，如果超过 20s 的界限，则无法 Build Closure 成功，也就彻底无法启动了。所幸本次并未发生，不然就是更严重的线上事件了。
+明确耗时是 Build Closure 阶段（约 17s），已经非常极限接近 20s 的界限了；一旦超过 20s 的界限，则无法 Build Closure 成功，也就彻底无法启动了。所幸本次并未全量卡死在边界之上，不然就是更严重的线上事件了。
 
 
 
@@ -257,24 +256,25 @@ Fixup 分两种，主要看是哪个方法的 applyFixups 就行。
 
 至此，病因明确，AppCore 的 selector 数量叠加系统 dyld cache 中的 selector 数量接近 Hash 表的极限，就导致性能出现明确劣化，具体来说就是首次的 Hash 结果会被抛弃，并重新构建，约等于构建了两次，并且第一次的性能非常差。
 
-而示例 App B的数量已经越过了 2^k ，即只创建了一次，因此没有对应问题。
+而 App B 的 selector 数量已经越过了 `2^k` 边界，即只创建了一次，因此没有遇到对应问题。
 
 
 ## 实锤修复
 
 既然问题已经明确，那么方案也就明确了，只需要我们手动塞入虚假的 Fake SEL ，让 dyld 从 2^k 开始构建 Hash 表即可。
 
-这里还有一次失误，AI 一开始告诉我们目标是需要凑到 0\.8 的负载系数是最优的，因此我们需要额外塞入 较多 个 SEL 。
+这里还有一次失误，AI 一开始告诉我们目标是需要凑到 `0.8` 的负载系数才是最优的，按这个算法我们需要额外塞入数十万量级的 SEL。
 
 为了防止拖慢 Compile 速度影响 CI/本地 出包速度，选择直接上汇编，并且为了规避单文件过大，因此进行拆分文件。
 
 ```bash
+# 示例：按指定数量生成分片汇编
 python3 gen_fake_sel_asm.py 10000
 ```
 
 [gen\_fake\_sel\_asm\.py](./attachments/attachment-09.py)
 
-应用修复方案后。包大小劣化 一定体积 ，但 Build Closure 耗时显著缩短。
+应用初版修复方案后，包大小增加了数 MB，但 Build Closure 耗时显著缩短。
 
 ![技术示意图 21](./images/figure-21.png)
 
@@ -284,7 +284,7 @@ python3 gen_fake_sel_asm.py 10000
 
 ### 追求极致
 
-需要说明的是，之前这是基于 make\_perfect 单一函数的最优性能，并非全局的最优性能。并且增加的 Fake SEL 数量越多，即使在后续已经完成 Build Closure 后，也依旧会在 applyFixup 时有微弱的性能影响，因此一位同事提出对 Fake SEL 的数量进行进一步测试，找到最适合的 sweet point 。
+需要说明的是，之前这是基于 `make_perfect` 单一函数的最优性能，并非全局的最优性能。并且增加的 Fake SEL 数量越多，即使在后续已经完成 Build Closure 后，也依旧会在 `applyFixup` 时有微弱的性能影响，因此这位同事提出对 Fake SEL 的数量做进一步梯度测试，找到最合适的 sweet point。
 
 
 同时还发现正确的目标不应该是凑到 0\.8 ，同时也不是凑到 0\.6 ，正确的目标是在最小代价下把 make\_perfect 次数降到尽可能小，满足各个 OS 的条件。
@@ -292,12 +292,9 @@ python3 gen_fake_sel_asm.py 10000
 ![技术示意图 23](./images/figure-23.png)
 
 
-经过最后测试得到结果，注入 较少 SEL 后，首次安装效果最优，同时对于后续冷启动也最优。
+经过最后测试得到结果：将注入的 SEL 数量收敛到数万级别后，首次安装效果最优，同时对于后续冷启动也最优，并追回了绝大部分包体积增量。
 
-一位同事和 一位同事测试，对于新用户首次安装效果明显。最后选取 修复方案。
-
-
-> 
+经过测试同学与业务侧实测验证，新用户首次安装的改善效果非常明显，最终敲定合入这一版精简数量后的方案。
 
 
-后续，一位同事额外提供了长期的解决方案，通过提供单独的二进制，并自动根据 iOS \[14, 17\] 的 dyld cache 计算雨露均沾所有 OS 的 Fake SEL 数量，并自动每个版本生成对应数量的二进制集成，彻底解决这一类问题，至此问题得到完满解决。
+后续，工具链同事额外提供了长期的工程化解决方案：通过独立生成填充二进制，自动根据 iOS \[14, 17\] 各版本的 dyld shared cache 计算“雨露均沾”覆盖所有目标 OS 的 Fake SEL 数量，并在每个版本构建时自动生成集成，彻底解决这一类问题。此外在线上影响评估与效果回收上，由于卡死发生在 dyld 构建启动闭包阶段、尚未走到任何 App 自监控代码，我们最终借助苹果系统级的 MetricKit 跨进程诊断上报（按低内存机型与 `make_perfect` 关键栈特征筛选；需注意 MetricKit 无法区分前后台启动），验证了新版本放量后该类启动超时异常的显著回落。至此问题得到完满解决。

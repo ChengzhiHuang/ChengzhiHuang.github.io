@@ -2,20 +2,74 @@
 import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import ArticleTools from '../../components/ArticleTools.astro';
-import { getPosts } from '../../lib/posts';
-import { categoryHref, formatDate } from '../../lib/model';
-export async function getStaticPaths() { return (await getPosts()).map(post => ({ params: { slug: post.data.permalink }, props: { post } })); }
-const { post } = Astro.props;
+import { getPosts, postHref } from '../../lib/posts';
+import { categoryHref, estimateReadingMinutes, formatDate } from '../../lib/model';
+export async function getStaticPaths() {
+  const all = await getPosts();
+  return all.map((post, i) => {
+    const newer = i > 0 ? all[i - 1] : null;
+    const older = i + 1 < all.length ? all[i + 1] : null;
+    const related = all
+      .filter(candidate => candidate.data.permalink !== post.data.permalink && candidate.data.category === post.data.category && candidate.data.permalink !== newer?.data.permalink && candidate.data.permalink !== older?.data.permalink)
+      .slice(0, 2);
+    return { params: { slug: post.data.permalink }, props: { post, newer, older, related } };
+  });
+}
+const { post, newer, older, related } = Astro.props;
 const { Content, headings } = await render(post);
 const toc = headings.filter(h => h.depth <= 3);
+const readingMinutes = estimateReadingMinutes(post.body || '');
 ---
 <Base title={post.data.title} description={post.data.description}>
   <div class="article-shell">
-    <header class="article-header"><a class="back-link" href="/">← 全部文章</a><p class="eyebrow"><a href={categoryHref(post.data.category)}>{post.data.category}</a></p><h1>{post.data.title}</h1><div class="article-meta"><span>ChengzhiHuang</span><span aria-hidden="true">·</span><time datetime={post.data.date}>{formatDate(post.data.date)}</time>{post.data.dateBasis === 'modified' && <span>更新</span>}</div><p class="article-description">{post.data.description}</p><div class="tags">{post.data.tags.map(tag => <a href={`/?q=${encodeURIComponent(tag)}`}>#{tag}</a>)}</div></header>
+    <header class="article-header">
+      <a class="back-link" href="/">← 全部文章</a>
+      <p class="eyebrow"><a href={categoryHref(post.data.category)}>{post.data.category}</a></p>
+      <h1>{post.data.title}</h1>
+      <div class="article-meta">
+        <span>ChengzhiHuang</span>
+        <span aria-hidden="true">·</span>
+        <time datetime={post.data.date}>{formatDate(post.data.date)}</time>
+        {post.data.dateBasis === 'modified' && <span>更新</span>}
+        <span aria-hidden="true">·</span>
+        <span>约 {readingMinutes} 分钟阅读</span>
+      </div>
+      <p class="article-description">{post.data.description}</p>
+      <div class="tags">{post.data.tags.map(tag => <a href={`/?q=${encodeURIComponent(tag)}`}>#{tag}</a>)}</div>
+    </header>
     <div class="article-grid">
       {toc.length > 0 && <aside class="toc"><details open><summary>本文目录</summary><nav aria-label="本文目录"><ol>{toc.map(h => <li class:list={{ nested: h.depth === 3 }}><a href={`#${h.slug}`}>{h.text}</a></li>)}</ol></nav></details></aside>}
       <article class="prose"><Content /></article>
     </div>
+    {(newer || older) && (
+      <nav class="post-pager" aria-label="相邻文章">
+        {newer ? (
+          <a class="pager-card" href={postHref(newer.data.permalink)}>
+            <span class="pager-label">← 较新一篇 · {newer.data.category}</span>
+            <span class="pager-title">{newer.data.title}</span>
+          </a>
+        ) : <span class="pager-spacer" aria-hidden="true"></span>}
+        {older && (
+          <a class="pager-card pager-next" href={postHref(older.data.permalink)}>
+            <span class="pager-label">较早一篇 · {older.data.category} →</span>
+            <span class="pager-title">{older.data.title}</span>
+          </a>
+        )}
+      </nav>
+    )}
+    {related.length > 0 && (
+      <aside class="related-posts" aria-label="同分类延伸阅读">
+        <p class="related-heading">同分类延伸阅读 · {post.data.category}</p>
+        <ul>
+          {related.map(item => (
+            <li>
+              <a href={postHref(item.data.permalink)}>{item.data.title}</a>
+              <time datetime={item.data.date}>{formatDate(item.data.date)}</time>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    )}
     <div class="article-end"><span>— 本文结束 —</span><a href="/">继续阅读其他文章 →</a></div>
   </div>
   <ArticleTools />

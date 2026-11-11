@@ -717,7 +717,7 @@ demo`:
     0x100909b5c <+20>: mov    x8, x0 // x8 = x0
     0x100909b60 <+24>: str    x8, [sp, #0x10] // *(sp + 0x10) = x8(x0)
     0x100909b64 <+28>: ldr    x8, [x0, #0x20] // x8 = *(x0 + 0x20)，x0 + 0x20 的位置其实是 TestChildObjc * ，原因我们之前已经解释过了，这里可以再次实锤 capture 了 TestChildObj 对象
-    0x100909b68 <+32>: mov    x0, sp // x0 = sp，栈上的地址，注意这里是直接赋值，不是 x0 = *sp ，sp 的内存是未定义的，不理解为什么内存为定义可以看 。这里需要知道下 objc_msgSendSuper2 的第一个参数传了什么（答案是：栈上的地址），能够更好的理解
+    0x100909b68 <+32>: mov    x0, sp // x0 = sp，栈上的地址，注意这里是直接赋值，不是 x0 = *sp ，sp 的内存是未定义的（不理解为什么内存未定义可参考《OC 局部变量未初始化的危险性》）。这里需要知道下 objc_msgSendSuper2 的第一个参数传了什么（答案是：栈上的地址），能够更好的理解
     0x100909b6c <+36>: str    x8, [sp] // *sp = x8 = TestChildObjc * 
     0x100909b70 <+40>: adrp   x8, 8
     0x100909b74 <+44>: ldr    x8, [x8, #0x198]
@@ -854,7 +854,7 @@ demo`:
 
 但这种解法不是很优雅，去看实现的时候还得跳转，还是直接在 Block 内调用会合适一些。
 
-因此我们给出第二个解法，来自一位性能分析同事的实现启发，DEMO 是示例工程自己定义的前缀，具体可以根据实际调用场景再补充一些定义。
+因此我们给出第二个解法，灵感来自做 APM 方向的同事（下面宏里的 `demo_` 是演示用的自定义前缀，大家接入时换成自己工程的前缀、再根据实际调用签名补充定义即可）：
 
 ```objective-c
 #define demo_create_super_info(thisSelf, superClass) \
@@ -900,7 +900,7 @@ struct objc_super demo_super_info = {                \
 https://github.com/llvm-mirror/clang/blob/aa231e4be75ac4759c236b755c57876f76e3cf05/lib/Frontend/Rewrite/RewriteModernObjC.cpp#L2439
 
 
-[OC 局部变量未初始化的危险性 - 掘金](https://juejin.cn/post/7187664196492853308)
+[OC 局部变量未初始化的危险性](/posts/objc-uninitialized-locals/)
 
 [【WWDC22 110363】App 包大小优化和 Runtime 上的性能提升 - 小专栏](https://xiaozhuanlan.com/topic/4675012938)
 
